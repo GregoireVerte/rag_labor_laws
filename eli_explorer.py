@@ -46,39 +46,44 @@ def explore_labor_law():
         # jeśli JSON jest poprawny szuka Kodeksu pracy
         
         found = False
-        for act in acts_list:  # iteracja po liście wyciągniętej z 'items'
-            # szuka po tytule (ignorując wielkość liter)
-            if 'kodeks pracy' in act.get('title', '').lower():
-                print("\nZnaleziono Kodeks pracy:")
+        target_eli = 'DU/1974/141'  # twardy identyfikator Kodeksu pracy
+
+        print(f"Szukam konkretnego aktu o ID: {target_eli} ...")
+
+        for act in acts_list:
+            # sprawdzamy czy ELI w akcie jest identyczne z tym, którego szukamy
+            if act.get('ELI') == target_eli:
+                print("\nZnaleziono właściwy Kodeks pracy:")
                 print(f"Tytuł: {act.get('title')}")
-                print(f"ELI ID: {act.get('ELI')}") # kluczowe ID
-                print(f"Data ogłoszenia: {act.get('promulgation')}")
-                print(f"Status: {act.get('status')}")
-                found = True
-                
-                # pobiera szczegóły tego konkretnego aktu
-                eli_id = act.get('ELI')
-                ### usuwanie ewentualnych spacji i kodowanie URL na wypadek dziwnych znaków, choć tu raczej ich nie ma
-                details_url = f"https://api.sejm.gov.pl/eli/acts/{eli_id}"
-                print(f"\nPobieranie szczegółów z: {details_url}")
-                
+                print(f"ELI ID: {act.get('ELI')}")
+
+                ### konstrukcja linków
+                ### API mówi tylko "True" (że plik istnieje), trzeba zbudować link.
+                ### wg dokumentacji ELI API linki do treści binarnych wyglądają tak:
+
+                # 1. Oryginalny PDF (skan z 1974 roku)
+                pdf_url = f"https://api.sejm.gov.pl/eli/acts/{target_eli}/text/pdf"
+
+                # 2. Tekst Ujednolicony (tego szuka RAG)
+                # Tekst ujednolicony zawiera wszystkie zmiany naniesione przez lata
+                unified_url = f"https://api.sejm.gov.pl/eli/acts/{target_eli}/text/unified"
+
+                print(f"\nSkonstruowane linki do pobrania:")
+                print(f"-> PDF (Oryginał): {pdf_url}")
+                print(f"-> PDF (Ujednolicony): {unified_url}")
+
+                ## sprawdzenie jeszcze raz changeDate dla pewności
+                details_url = f"https://api.sejm.gov.pl/eli/acts/{target_eli}"
                 det_response = requests.get(details_url, headers=headers)
                 if det_response.status_code == 200:
                     det_data = det_response.json()
-                    print(f"Link do tekstu ujednoliconego: {det_data.get('textUnified')}")
-                    print(f"Link do PDF (oryginał): {det_data.get('textPDF')}") ### czasem klucz to textPDF
-                    print(f"Ostatnia zmiana (changeDate): {det_data.get('changeDate')}")
-                else:
-                    print("Nie udało się pobrać szczegółów.")
+                    print(f"-> Data ostatniej zmiany (changeDate): {det_data.get('changeDate')}")
+
+                found = True
                 break
         
         if not found:
-            print("Pobrano rocznik 1974, ale nie znaleziono Kodeksu pracy na liście.")
-            # wypisze pierwsze 3 akty dla sprawdzenia co przyszło
-            if len(acts_list) > 0:
-                print("Przykładowe 3 tytuły z listy:")
-                for a in acts_list[:3]:
-                    print(f"- {a.get('title')}")
+            print(f"Nie znaleziono aktu o ID {target_eli} na liście z 1974 roku.")
 
     except Exception as e:
         print(f"Wystąpił błąd krytyczny: {e}")
