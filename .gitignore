@@ -1,0 +1,6 @@
+.env
+*.env
+.ipynb_checkpoints
+qdrant_storage/
+n8n_data/
+__pycache__/
