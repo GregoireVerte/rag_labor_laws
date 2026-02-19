@@ -22,3 +22,15 @@ services:
     volumes:
       - ./n8n_data:/home/node/.n8n # tu będą zapisywane workflows
     restart: always
+  # Data base
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: labor_law_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
