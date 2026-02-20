@@ -4,3 +4,4 @@
 qdrant_storage/
 n8n_data/
 __pycache__/
+postgres_data/
