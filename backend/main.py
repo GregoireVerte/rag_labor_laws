@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -14,6 +15,13 @@ Base.metadata.create_all(bind=engine)
 
 # Inicjalizacja
 app = FastAPI(title="Labor Law RAG API with Logging")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], ### w produkcji podaje się tu adres danego frontendu
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 rag_engine = LaborLawRAG()
 
 class Query(BaseModel):
