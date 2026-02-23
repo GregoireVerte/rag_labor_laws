@@ -25,22 +25,26 @@ function App() {
   return (
     <div className="App">
       <h1>Asystent Prawa Pracy</h1>
-      <div className="chat-container">
-        <textarea
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Zadaj pytanie dotyczące Kodeksu Pracy..."
-        />
-        <button onClick={askAi} disabled={loading}>
-          {loading ? "Myślę..." : "Zapytaj"}
-        </button>
-      </div>
-      {answer && (
-        <div className="answer-box">
-          <h3>Odpowiedź:</h3>
-          <p>{answer}</p>
+
+      <div className="chat-window">
+        <div className="input-group">
+          <textarea
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Opisz swoją sytuację (np. pracuję 12 lat w firmie X i chcę wiedzieć ile przysługuje mi urlopu...)"
+          />
+          <button onClick={askAi} disabled={loading}>
+            {loading ? "Analizuję przepisy..." : "Wyślij zapytanie"}
+          </button>
         </div>
-      )}
+
+        {answer && (
+          <div className="response-container">
+            <h3>Odpowiedź Eksperta:</h3>
+            <div className="response-text">{answer}</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
