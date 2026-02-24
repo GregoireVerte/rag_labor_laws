@@ -32,12 +32,12 @@ class Query(BaseModel):
 async def ask_lawyer(query: Query, db: Session = Depends(get_db)):
     try:
         # 1. Uzyskuje odpowiedź od AI
-        answer = rag_engine.ask(query.question)
+        result = rag_engine.ask(query.question) ### result to słownik: {"answer": "...", "sources": [...]}
         
         # 2. Tworzy obiekt logu do zapisu w Postgres
         new_log = Log(
             question=query.question,
-            answer=answer
+            answer=result["answer"]
         )
         
         # 3. Zapis w bazie danych
@@ -47,8 +47,9 @@ async def ask_lawyer(query: Query, db: Session = Depends(get_db)):
         
         return {
             "id": new_log.id,
-            "question": query.question, 
-            "answer": answer,
+            "question": query.question,
+            "answer": result["answer"],
+            "sources": result["sources"], ### lista artykułów
             "timestamp": new_log.created_at
         }
         

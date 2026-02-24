@@ -6,6 +6,7 @@ function App() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sources, setSources] = useState([]);
 
   const askAi = async () => {
     if (!question) return;
@@ -15,6 +16,7 @@ function App() {
         question: question,
       });
       setAnswer(response.data.answer);
+      setSources(response.data.sources);
     } catch (error) {
       console.error("Błąd podczas pytania:", error);
       setAnswer("Wystąpił błąd podczas łączenia z backendem.");
@@ -42,6 +44,19 @@ function App() {
           <div className="response-container">
             <h3>Odpowiedź Eksperta:</h3>
             <div className="response-text">{answer}</div>
+
+            {sources.length > 0 && (
+              <div className="sources-list">
+                <h4>Źródła:</h4>
+                <div className="tags">
+                  {sources.map((src) => (
+                    <span key={src} className="source-tag">
+                      {src}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

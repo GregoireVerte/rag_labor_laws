@@ -23,10 +23,20 @@ class LaborLawRAG:
             limit=limit,
             with_payload=True
         ).points
-        return "\n\n".join([f"[{res.payload.get('art_id')}]: {res.payload.get('content')}" for res in results])
+
+        context_parts = []
+        sources = set() #### set() żeby uniknąć duplikatów numerów artykułów
+
+        for res in results:
+            art_id = res.payload.get('art_id', 'Nieznany')
+            content = res.payload.get('content', '')
+            context_parts.append(f"[{art_id}]: {content}")
+            sources.add(art_id)
+
+        return "\n\n".join(context_parts), sorted(list(sources))
 
     def ask(self, question):
-        context = self.get_context(question)
+        context, sources = self.get_context(question) ## pobieranie kontekstu i listy źródeł
         # Budowanie System Promptu
         system_prompt = f"""Jesteś pomocnym i precyzyjnym asystentem oraz ekspertem od polskiego prawa pracy. 
         Zawsze odpowiadaj tylko na podstawie dostarczonego kontekstu w postaci artykułów ustawy / rozporządzeń bez używania wcześniejszej wiedzy ogólnej. 
@@ -42,7 +52,10 @@ class LaborLawRAG:
             model="llama-3.3-70b-versatile",
             temperature=0.1 ### aby odpowiedzi były maksymalnie precyzyjne i mało kreatywne
         )
-        return chat.choices[0].message.content
+        return {
+            "answer": chat.choices[0].message.content,
+            "sources": sources
+        }
     
 
 if __name__ == "__main__":

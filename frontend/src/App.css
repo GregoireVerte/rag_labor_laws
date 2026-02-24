@@ -54,6 +54,9 @@ h1 {
   transition: all 0.3s ease;
   box-sizing: border-box;
   background-color: #f8f9fa;
+  resize: vertical; /* pozwala rozciągać tylko w dół */
+  max-width: 100%; /* gwarantuje, że pole nigdy nie wyjdzie poza rodzica */
+  display: block; /* usuwa zbędne marginesy liniowe */
 }
 
 .input-group textarea:focus {
@@ -114,4 +117,31 @@ button:disabled {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.sources-list {
+  margin-top: 20px;
+  border-top: 1px solid #d6eaf8;
+  padding-top: 15px;
+}
+
+.sources-list h4 {
+  font-size: 14px;
+  color: #7f8c8d;
+  margin-bottom: 10px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.source-tag {
+  background-color: #3498db;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
 }
