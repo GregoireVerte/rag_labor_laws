@@ -6,6 +6,7 @@ class Log(Base):
     __tablename__ = "logs"
 
     id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, index=True)
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
     # dodanie daty i godziny zapytania

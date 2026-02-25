@@ -35,23 +35,40 @@ class LaborLawRAG:
 
         return "\n\n".join(context_parts), sorted(list(sources))
 
-    def ask(self, question):
+    def ask(self, question, chat_history=None):
         context, sources = self.get_context(question) ## pobieranie kontekstu i listy źródeł
-        # Budowanie System Promptu
-        system_prompt = f"""Jesteś pomocnym i precyzyjnym asystentem oraz ekspertem od polskiego prawa pracy. 
-        Zawsze odpowiadaj tylko na podstawie dostarczonego kontekstu w postaci artykułów ustawy / rozporządzeń bez używania wcześniejszej wiedzy ogólnej. 
-        Jeśli odpowiedzi nie ma w kontekście, poinformuj o tym. 
-        Odpowiedź musi być w języku polskim, chyba że użytkownik wyraźnie zaznaczy, że ma być w innym konkretnym języku (np. angielskim).
-        WAŻNE: Używaj wyłącznie alfabetu łacińskiego. Nie używaj cyrylicy ani znaków azjatyckich.
+        ## Budowanie System Promptu ## inicjowanie listy wiadomości od instrukcji systemowej
+        messages = [
+            {
+                "role": "system",
+                "content": f"""Jesteś pomocnym i precyzyjnym asystentem oraz ekspertem od polskiego prawa pracy. 
+                Zawsze odpowiadaj tylko na podstawie dostarczonego kontekstu w postaci artykułów ustawy / rozporządzeń bez używania wcześniejszej wiedzy ogólnej. 
+                Jeśli odpowiedzi nie ma w kontekście, poinformuj o tym. 
+                Odpowiedź musi być w języku polskim, chyba że użytkownik wyraźnie zaznaczy, że ma być w innym konkretnym języku (np. angielskim).
+                WAŻNE: Używaj wyłącznie alfabetu łacińskiego. Nie używaj cyrylicy ani znaków azjatyckich.
 
-        KONTEKST:
-        {context}"""
+                KONTEKST:
+                {context}"""
+            }
+        ]
+
+        ## jeśli otrzymano historię to następuje dodanie jej do listy wiadomości
+        ## założenie że chat_history to lista krotek: [(pytanie1, odpowiedź1), (pytanie2, odpowiedź2)]
+        if chat_history:
+            for old_question, old_answer in chat_history:
+                messages.append({"role": "user", "content": old_question})
+                messages.append({"role": "assistant", "content": old_answer})
+
+        ## na końcu dodanie bieżącego pytania użytkownika
+        messages.append({"role": "user", "content": question})
         
+        ## wysłanie całej listy do Groq
         chat = self.groq.chat.completions.create(
-            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": question}],
+            messages=messages,
             model="llama-3.3-70b-versatile",
             temperature=0.1 ### aby odpowiedzi były maksymalnie precyzyjne i mało kreatywne
         )
+
         return {
             "answer": chat.choices[0].message.content,
             "sources": sources
