@@ -35,8 +35,37 @@ class LaborLawRAG:
 
         return "\n\n".join(context_parts), sorted(list(sources))
 
+    def rewrite_query(self, question, chat_history):
+        if not chat_history:
+            return question
+            
+        # Prosi AI o stworzenie zapytania wyszukiwarkowego na podstawie wcześniejszej historii
+        history_text = "\n".join([f"User: {q}\nAI: {a}" for q, a in chat_history])
+        
+        prompt = f"""Na podstawie poniższej historii rozmowy oraz nowego pytania, stwórz jedno samodzielne i precyzyjne zapytanie do bazy dokumentów prawnych. 
+        Zapytanie musi zawierać wszystkie niezbędne słowa kluczowe (np. temat rozmowy), aby wyszukiwarka znalazła właściwy artykuł.
+        
+        HISTORIA:
+        {history_text}
+        
+        NOWE PYTANIE: {question}
+        
+        SAMODZIELNE ZAPYTANIE:"""
+        
+        res = self.groq.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0
+        )
+        return res.choices[0].message.content
+
     def ask(self, question, chat_history=None):
-        context, sources = self.get_context(question) ## pobieranie kontekstu i listy źródeł
+        # przepisywanie zapytania jeśli jest historia --> szukanie w Qdrancie za pomocą "mądrzejszego" pytania
+        search_query = self.rewrite_query(question, chat_history) if chat_history else question
+
+        # pobieranie kontekstu na podstawie "mądrzejszego" zapytania jeśli jest historia
+        context, sources = self.get_context(search_query) ## pobieranie kontekstu i listy źródeł
+
         ## Budowanie System Promptu ## inicjowanie listy wiadomości od instrukcji systemowej
         messages = [
             {

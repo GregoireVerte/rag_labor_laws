@@ -26,27 +26,43 @@ rag_engine = LaborLawRAG()
 
 class Query(BaseModel):
     question: str
+    session_id: str = None  ## pole na ID sesji
 
 # ENDPOINT Z LOGOWANIEM
 @app.post("/ask")
 async def ask_lawyer(query: Query, db: Session = Depends(get_db)):
     try:
-        # 1. Uzyskuje odpowiedź od AI
-        result = rag_engine.ask(query.question) ### result to słownik: {"answer": "...", "sources": [...]}
+        # 1. Pobiera historię rozmowy dla danej sesji z bazy danych
+        chat_history = []
+        if query.session_id:
+            ### szuka logów z tym samym session_id posortowanych od najstarszych
+            history_logs = db.query(Log).filter(
+                Log.session_id == query.session_id
+            ).order_by(Log.created_at.asc()).all()
+
+            ### formatowanie logów do postaci listy krotek: [(pytanie, odpowiedź), ...]
+            chat_history = [(log.question, log.answer) for log in history_logs]
+
+        # 2. Przekazuje historię do silnika RAG ### plus uzyskuje odpowiedź od AI
+        #### przekazywany jest też drugi argument: chat_history
+        result = rag_engine.ask(query.question, chat_history=chat_history) ### result to słownik: {"answer": "...", "sources": [...]}
         
-        # 2. Tworzy obiekt logu do zapisu w Postgres
+        # 3. Zapis nowego zapytania wraz z session_id w bazie ### utworzenie obiekt logu do zapisu w Postgres
         new_log = Log(
+            session_id=query.session_id, #### zapis ID sesji
             question=query.question,
             answer=result["answer"]
         )
         
-        # 3. Zapis w bazie danych
+        # 4. Zapis w bazie danych
         db.add(new_log)
         db.commit()
         db.refresh(new_log) ## odświeżanie by np. dostać ID z bazy
         
+        # 5. Zwraca odpowiedź do frontendu
         return {
             "id": new_log.id,
+            "session_id": query.session_id,
             "question": query.question,
             "answer": result["answer"],
             "sources": result["sources"], ### lista artykułów
