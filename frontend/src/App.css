@@ -91,21 +91,70 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Wynik jako bąbelek czatu */
-.response-container {
-  margin-top: 20px;
-  border-left: 5px solid #3498db;
-  background: #f0f7ff;
-  padding: 30px;
-  border-radius: 12px;
-  animation: fadeIn 0.5s ease-in;
+/* Kontener na historię rozmowy */
+.messages-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-height: 500px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  padding-right: 10px;
 }
 
-.response-text {
-  font-size: 18px;
+/* Ogólny styl dymka */
+.message-bubble {
+  max-width: 80%;
+  padding: 12px 18px;
+  border-radius: 15px;
+  font-size: 16px;
+  line-height: 1.5;
+  position: relative;
+  word-wrap: break-word;
+}
+
+/* Dymek użytkownika - po prawej */
+.message-bubble.user {
+  align-self: flex-end;
+  background-color: #3498db;
+  color: white;
+  border-bottom-right-radius: 2px;
+}
+
+/* Dymek asystenta - po lewej */
+.message-bubble.assistant {
+  align-self: flex-start;
+  background-color: #f1f3f5;
   color: #2c3e50;
-  line-height: 1.8;
-  white-space: pre-wrap; /* Zachowuje entery z AI */
+  border-radius: 15px 15px 15px 2px;
+  border-left: 5px solid #3498db;
+}
+
+/* Źródła wewnątrz dymka AI */
+.message-sources {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.source-tag {
+  background: #3498db;
+  color: white;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* Scrollbar dla kontenera wiadomości */
+.messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+.messages-container::-webkit-scrollbar-thumb {
+  background-color: #cbd5e0;
+  border-radius: 10px;
 }
 
 @keyframes fadeIn {

@@ -1,64 +1,100 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
 
+const getOrCreateSessionId = () => {
+  let sessionId = localStorage.getItem("chat_session_id");
+  if (!sessionId) {
+    sessionId = "session-" + Math.random().toString(36).substring(2, 9);
+    localStorage.setItem("chat_session_id", sessionId);
+  }
+  return sessionId;
+};
+
 function App() {
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
+  const [messages, setMessages] = useState([]); // Tablica na historię dymków
   const [loading, setLoading] = useState(false);
-  const [sources, setSources] = useState([]);
+  const [sessionId] = useState(getOrCreateSessionId()); // Stałe ID dla tej przeglądarki
 
   const askAi = async () => {
-    if (!question) return;
+    if (!question.trim()) return;
+
+    const userQuery = question;
+    setQuestion(""); // Czyści pole od razu dla lepszego UX
+
+    // 1. Dodaje pytanie użytkownika do widoku
+    const userMsg = { role: "user", text: userQuery };
+    setMessages((prev) => [...prev, userMsg]);
+
     setLoading(true);
     try {
       const response = await axios.post("http://localhost:8000/ask", {
-        question: question,
+        question: userQuery,
+        session_id: sessionId, // Wysyła trwałe ID
       });
-      setAnswer(response.data.answer);
-      setSources(response.data.sources);
+
+      // 2. Dodaje odpowiedź AI do widoku
+      const aiMsg = {
+        role: "assistant",
+        text: response.data.answer,
+        sources: response.data.sources,
+      };
+      setMessages((prev) => [...prev, aiMsg]);
     } catch (error) {
-      console.error("Błąd podczas pytania:", error);
-      setAnswer("Wystąpił błąd podczas łączenia z backendem.");
+      console.error("Błąd:", error);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: "Błąd połączenia z serwerem." },
+      ]);
     }
     setLoading(false);
   };
 
   return (
     <div className="App">
-      <h1>Asystent Prawa Pracy</h1>
+      <h1>⚖️ Asystent Prawa Pracy</h1>
 
       <div className="chat-window">
-        <div className="input-group">
-          <textarea
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Opisz swoją sytuację (np. pracuję 12 lat w firmie X i chcę wiedzieć ile przysługuje mi urlopu...)"
-          />
-          <button onClick={askAi} disabled={loading}>
-            {loading ? "Analizuję przepisy..." : "Wyślij zapytanie"}
-          </button>
-        </div>
+        {/* Kontener na dymki */}
+        <div className="messages-container">
+          {messages.map((msg, index) => (
+            <div key={index} className={`message-bubble ${msg.role}`}>
+              <div className="message-content">{msg.text}</div>
 
-        {answer && (
-          <div className="response-container">
-            <h3>Odpowiedź Eksperta:</h3>
-            <div className="response-text">{answer}</div>
-
-            {sources.length > 0 && (
-              <div className="sources-list">
-                <h4>Źródła:</h4>
-                <div className="tags">
-                  {sources.map((src) => (
+              {/* Wyświetla źródła tylko dla AI i jeśli istnieją */}
+              {msg.role === "assistant" && msg.sources?.length > 0 && (
+                <div className="message-sources">
+                  {msg.sources.map((src) => (
                     <span key={src} className="source-tag">
                       {src}
                     </span>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          ))}
+          {loading && (
+            <div className="message-bubble assistant loading">
+              Analizuję przepisy...
+            </div>
+          )}
+        </div>
+
+        {/* Panel wpisywania na dole */}
+        <div className="input-group">
+          <textarea
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) =>
+              e.key === "Enter" && !e.shiftKey && (e.preventDefault(), askAi())
+            }
+            placeholder="Zadaj pytanie lub opisz swoją sytuację..."
+          />
+          <button onClick={askAi} disabled={loading}>
+            Wyślij
+          </button>
+        </div>
       </div>
     </div>
   );
