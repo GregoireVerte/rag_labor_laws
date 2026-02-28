@@ -96,7 +96,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  max-height: 500px;
+  max-height: 700px;
   overflow-y: auto;
   margin-bottom: 20px;
   padding-right: 10px;
@@ -140,14 +140,6 @@ button:disabled {
   gap: 5px;
 }
 
-.source-tag {
-  background: #3498db;
-  color: white;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-
 /* Scrollbar dla kontenera wiadomości */
 .messages-container::-webkit-scrollbar {
   width: 6px;
@@ -166,24 +158,6 @@ button:disabled {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.sources-list {
-  margin-top: 20px;
-  border-top: 1px solid #d6eaf8;
-  padding-top: 15px;
-}
-
-.sources-list h4 {
-  font-size: 14px;
-  color: #7f8c8d;
-  margin-bottom: 10px;
-}
-
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 .source-tag {

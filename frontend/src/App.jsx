@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "./App.css";
 
@@ -16,6 +16,11 @@ function App() {
   const [messages, setMessages] = useState([]); // Tablica na historię dymków
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(getOrCreateSessionId()); // Stałe ID dla tej przeglądarki
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const askAi = async () => {
     if (!question.trim()) return;
@@ -51,6 +56,10 @@ function App() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading]); // 'loading', żeby zjeżdżał, gdy pojawia się "Analizuję..."
+
   return (
     <div className="App">
       <h1>⚖️ Asystent Prawa Pracy</h1>
@@ -79,6 +88,8 @@ function App() {
               Analizuję przepisy...
             </div>
           )}
+          {/* Na samym końcu punkt docelowy scrolla */}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Panel wpisywania na dole */}
