@@ -60,6 +60,24 @@ function App() {
     scrollToBottom();
   }, [messages, loading]); // 'loading', żeby zjeżdżał, gdy pojawia się "Analizuję..."
 
+  // useEffect do ładowania historii z bazy przy starcie strony
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:8000/history/${sessionId}`,
+        );
+        setMessages(response.data);
+      } catch (error) {
+        console.error("Nie udało się załadować historii:", error);
+      }
+    };
+
+    if (sessionId) {
+      loadHistory();
+    }
+  }, [sessionId]); // uruchomi się raz, gdy tylko sessionId zostanie ustalone
+
   return (
     <div className="App">
       <h1>⚖️ Asystent Prawa Pracy</h1>

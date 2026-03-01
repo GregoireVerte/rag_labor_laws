@@ -28,6 +28,20 @@ class Query(BaseModel):
     question: str
     session_id: str = None  ## pole na ID sesji
 
+# ENDPOINT z przywracaniem wiadomości dla danego session_id
+@app.get("/history/{session_id}")
+async def get_history(session_id: str, db: Session = Depends(get_db)):
+    # Pobiera wszystkie logi dla tej sesji, od najstarszych
+    logs = db.query(Log).filter(Log.session_id == session_id).order_by(Log.created_at.asc()).all()
+    
+    # Przekształca je na format, który rozumie Frontend (dymki)
+    history = []
+    for log in logs:
+        history.append({"role": "user", "text": log.question})
+        history.append({"role": "assistant", "text": log.answer, "sources": []}) 
+    
+    return history
+
 # ENDPOINT Z LOGOWANIEM
 @app.post("/ask")
 async def ask_lawyer(query: Query, db: Session = Depends(get_db)):
