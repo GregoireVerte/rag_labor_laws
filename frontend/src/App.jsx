@@ -22,6 +22,14 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const startNewChat = () => {
+    // 1. Usuwa stare ID z pamięci przeglądarki
+    localStorage.removeItem("chat_session_id");
+
+    // 2. Przeładowuje stronę - to wygeneruje nowe ID i wyczyści stan messages
+    window.location.reload();
+  };
+
   const askAi = async () => {
     if (!question.trim()) return;
 
@@ -81,6 +89,9 @@ function App() {
   return (
     <div className="App">
       <h1>⚖️ Asystent Prawa Pracy</h1>
+      <button onClick={startNewChat} className="new-chat-btn">
+        + Nowy wątek
+      </button>
 
       <div className="chat-window">
         {/* Kontener na dymki */}

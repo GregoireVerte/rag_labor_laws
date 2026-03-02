@@ -168,3 +168,14 @@ button:disabled {
   font-size: 13px;
   font-weight: 500;
 }
+
+.new-chat-btn {
+  background-color: #e74c3c; /* Czerwony/pomarańczowy dla odróżnienia */
+  margin-bottom: 20px;
+  max-width: 150px;
+  font-size: 14px;
+  padding: 10px;
+}
+.new-chat-btn:hover {
+  background-color: #c0392b;
+}
