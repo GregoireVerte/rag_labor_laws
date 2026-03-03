@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text
+from sqlalchemy import Column, Integer, String, DateTime, Text, JSON
 from datetime import datetime, timezone
 from database import Base
 
@@ -11,5 +11,6 @@ class Log(Base):
     answer = Column(Text, nullable=False)
     # dodanie daty i godziny zapytania
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    sources = Column(JSON, nullable=True)
 
     ##### można tu w przyszłości dodać kolumny na meta-dane np. z którego modelu LLM pochodziła odpowiedź (jeśli to będzie ensemble) #####

@@ -38,7 +38,11 @@ async def get_history(session_id: str, db: Session = Depends(get_db)):
     history = []
     for log in logs:
         history.append({"role": "user", "text": log.question})
-        history.append({"role": "assistant", "text": log.answer, "sources": []}) 
+        history.append({
+            "role": "assistant",
+            "text": log.answer,
+            "sources": log.sources or []
+        })
     
     return history
 
@@ -65,7 +69,8 @@ async def ask_lawyer(query: Query, db: Session = Depends(get_db)):
         new_log = Log(
             session_id=query.session_id, #### zapis ID sesji
             question=query.question,
-            answer=result["answer"]
+            answer=result["answer"],
+            sources=result["sources"]
         )
         
         # 4. Zapis w bazie danych
