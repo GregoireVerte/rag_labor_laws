@@ -13,6 +13,7 @@ import uvicorn
 ### sprawdza modele w models.py i jeśli nie ma takich tabel w bazie tworzy je
 Base.metadata.create_all(bind=engine)
 
+
 # Inicjalizacja
 app = FastAPI(title="Labor Law RAG API with Logging")
 app.add_middleware(
@@ -24,9 +25,11 @@ app.add_middleware(
 )
 rag_engine = LaborLawRAG()
 
+
 class Query(BaseModel):
     question: str
     session_id: str = None  ## pole na ID sesji
+
 
 # ENDPOINT z przywracaniem wiadomości dla danego session_id
 @app.get("/history/{session_id}")
@@ -46,20 +49,47 @@ async def get_history(session_id: str, db: Session = Depends(get_db)):
     
     return history
 
+
+# ENDPOINT do pobierania wszystkich sesji
+@app.get("/sessions")
+async def get_all_sessions(db: Session = Depends(get_db)):
+    # Pobiera wszystkie sesje posortowane od najnowszych
+    return db.query(Session).order_by(Session.created_at.desc()).all()
+
+
+# ENDPOINT do zmiany nazwy sesji
+@app.patch("/sessions/{session_id}")
+async def update_session_title(session_id: str, title: str, db: Session = Depends(get_db)):
+    db_session = db.query(Session).filter(Session.id == session_id).first()
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Sesja nie znaleziona")
+    db_session.title = title
+    db_session.commit()
+    return db_session
+
+
 # ENDPOINT Z LOGOWANIEM
 @app.post("/ask")
 async def ask_lawyer(query: Query, db: Session = Depends(get_db)):
     try:
+        # zarządzanie sesją - sprawdzenie czy sesja już istnieje w tabeli sessions
+        db_session = db.query(Session).filter(Session.id == query.session_id).first()
+
+        if not db_session:
+            # jeśli nie istnieje tworzy nową sesję ## domyślny tytuł to fragment pytania (pierwsze 30 znaków)
+            short_title = (query.question[:30] + '...') if len(query.question) > 30 else query.question
+            db_session = Session(id=query.session_id, title=short_title)
+            db.add(db_session)
+            db.commit()
+
         # 1. Pobiera historię rozmowy dla danej sesji z bazy danych
         chat_history = []
-        if query.session_id:
-            ### szuka logów z tym samym session_id posortowanych od najstarszych
-            history_logs = db.query(Log).filter(
-                Log.session_id == query.session_id
-            ).order_by(Log.created_at.asc()).all()
-
-            ### formatowanie logów do postaci listy krotek: [(pytanie, odpowiedź), ...]
-            chat_history = [(log.question, log.answer) for log in history_logs]
+        ### szuka logów z tym samym session_id posortowanych od najstarszych
+        history_logs = db.query(Log).filter(
+            Log.session_id == query.session_id
+        ).order_by(Log.created_at.asc()).all()
+        ### formatowanie logów do postaci listy krotek: [(pytanie, odpowiedź), ...]
+        chat_history = [(log.question, log.answer) for log in history_logs]
 
         # 2. Przekazuje historię do silnika RAG ### plus uzyskuje odpowiedź od AI
         #### przekazywany jest też drugi argument: chat_history
@@ -92,9 +122,11 @@ async def ask_lawyer(query: Query, db: Session = Depends(get_db)):
         db.rollback() ### w razie błędu wycofuje zmiany w bazie
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "database": "connected"}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
