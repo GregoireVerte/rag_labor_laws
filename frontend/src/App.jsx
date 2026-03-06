@@ -13,30 +13,55 @@ const getOrCreateSessionId = () => {
 
 function App() {
   const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState([]); // Tablica na historię dymków
+  const [messages, setMessages] = useState([]);
+  const [sessions, setSessions] = useState([]); // Lista sesji do Sidebaru
   const [loading, setLoading] = useState(false);
-  const [sessionId] = useState(getOrCreateSessionId()); // Stałe ID dla tej przeglądarki
+  const [sessionId, setSessionId] = useState(getOrCreateSessionId());
   const messagesEndRef = useRef(null);
+
+  // 1. Pobieranie listy wszystkich sesji z bazy
+  const fetchSessions = async () => {
+    try {
+      const response = await axios.get("http://localhost:8000/sessions");
+      setSessions(response.data);
+    } catch (error) {
+      console.error("Błąd pobierania sesji:", error);
+    }
+  };
+
+  // 2. Ładowanie historii konkretnej sesji
+  const loadHistory = async (id) => {
+    try {
+      const response = await axios.get(`http://localhost:8000/history/${id}`);
+      setMessages(response.data);
+      setSessionId(id);
+      localStorage.setItem("chat_session_id", id);
+    } catch (error) {
+      console.error("Błąd ładowania historii:", error);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const startNewChat = () => {
-    // 1. Usuwa stare ID z pamięci przeglądarki
-    localStorage.removeItem("chat_session_id");
+  // Start przy uruchomieniu: pobiera sesje i historię aktualnej sesji
+  useEffect(() => {
+    fetchSessions();
+    if (sessionId) {
+      loadHistory(sessionId);
+    }
+  }, []); // tylko przy montowaniu
 
-    // 2. Przeładowuje stronę - to wygeneruje nowe ID i wyczyści stan messages
-    window.location.reload();
-  };
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading]);
 
   const askAi = async () => {
     if (!question.trim()) return;
-
     const userQuery = question;
-    setQuestion(""); // Czyści pole od razu dla lepszego UX
+    setQuestion("");
 
-    // 1. Dodaje pytanie użytkownika do widoku
     const userMsg = { role: "user", text: userQuery };
     setMessages((prev) => [...prev, userMsg]);
 
@@ -44,16 +69,18 @@ function App() {
     try {
       const response = await axios.post("http://localhost:8000/ask", {
         question: userQuery,
-        session_id: sessionId, // Wysyła trwałe ID
+        session_id: sessionId,
       });
 
-      // 2. Dodaje odpowiedź AI do widoku
       const aiMsg = {
         role: "assistant",
         text: response.data.answer,
         sources: response.data.sources,
       };
       setMessages((prev) => [...prev, aiMsg]);
+
+      // Po pierwszym pytaniu w nowej sesji odświeża listę w Sidebarze
+      fetchSessions();
     } catch (error) {
       console.error("Błąd:", error);
       setMessages((prev) => [
@@ -64,78 +91,84 @@ function App() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, loading]); // 'loading', żeby zjeżdżał, gdy pojawia się "Analizuję..."
-
-  // useEffect do ładowania historii z bazy przy starcie strony
-  useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        const response = await axios.get(
-          `http://localhost:8000/history/${sessionId}`,
-        );
-        setMessages(response.data);
-      } catch (error) {
-        console.error("Nie udało się załadować historii:", error);
-      }
-    };
-
-    if (sessionId) {
-      loadHistory();
-    }
-  }, [sessionId]); // uruchomi się raz, gdy tylko sessionId zostanie ustalone
+  const startNewChat = () => {
+    const newId = "session-" + Math.random().toString(36).substring(2, 9);
+    setSessionId(newId);
+    localStorage.setItem("chat_session_id", newId);
+    setMessages([]);
+    setQuestion("");
+    // Nie przeładowuje całej strony (window.location.reload()),
+    // dzięki temu przejście jest płynne
+  };
 
   return (
-    <div className="App">
-      <h1>⚖️ Asystent Prawa Pracy</h1>
-      <button onClick={startNewChat} className="new-chat-btn">
-        + Nowy wątek
-      </button>
-
-      <div className="chat-window">
-        {/* Kontener na dymki */}
-        <div className="messages-container">
-          {messages.map((msg, index) => (
-            <div key={index} className={`message-bubble ${msg.role}`}>
-              <div className="message-content">{msg.text}</div>
-
-              {/* Wyświetla źródła tylko dla AI i jeśli istnieją */}
-              {msg.role === "assistant" && msg.sources?.length > 0 && (
-                <div className="message-sources">
-                  {msg.sources.map((src) => (
-                    <span key={src} className="source-tag">
-                      {src}
-                    </span>
-                  ))}
-                </div>
-              )}
+    <div className="layout">
+      {/* SIDEBAR */}
+      <aside className="sidebar">
+        <button onClick={startNewChat} className="new-chat-btn">
+          + Nowy wątek
+        </button>
+        <div className="sessions-list">
+          {sessions.map((s) => (
+            <div
+              key={s.id}
+              className={`session-item ${s.id === sessionId ? "active" : ""}`}
+              onClick={() => loadHistory(s.id)}
+            >
+              <span className="session-icon">💬</span>
+              <span className="session-title">{s.title}</span>
             </div>
           ))}
-          {loading && (
-            <div className="message-bubble assistant loading">
-              Analizuję przepisy...
-            </div>
-          )}
-          {/* Na samym końcu punkt docelowy scrolla */}
-          <div ref={messagesEndRef} />
         </div>
+      </aside>
 
-        {/* Panel wpisywania na dole */}
-        <div className="input-group">
-          <textarea
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" && !e.shiftKey && (e.preventDefault(), askAi())
-            }
-            placeholder="Zadaj pytanie lub opisz swoją sytuację..."
-          />
-          <button onClick={askAi} disabled={loading}>
-            Wyślij
-          </button>
+      {/* GŁÓWNE OKNO CZATU */}
+      <main className="chat-main">
+        <header>
+          <h1>⚖️ Asystent Prawa Pracy</h1>
+        </header>
+
+        <div className="chat-window">
+          <div className="messages-container">
+            {messages.map((msg, index) => (
+              <div key={index} className={`message-bubble ${msg.role}`}>
+                <div className="message-content">{msg.text}</div>
+                {msg.role === "assistant" && msg.sources?.length > 0 && (
+                  <div className="message-sources">
+                    {msg.sources.map((src) => (
+                      <span key={src} className="source-tag">
+                        {src}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            {loading && (
+              <div className="message-bubble assistant loading">
+                Analizuję przepisy...
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="input-group">
+            <textarea
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) =>
+                e.key === "Enter" &&
+                !e.shiftKey &&
+                (e.preventDefault(), askAi())
+              }
+              placeholder="Zadaj pytanie..."
+            />
+            <button className="send-btn" onClick={askAi} disabled={loading}>
+              Wyślij
+            </button>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

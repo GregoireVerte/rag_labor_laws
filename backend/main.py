@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from rag_engine import LaborLawRAG
 from database import engine, get_db
-from models import Base, Log
+from models import Base, Log, Session as ChatSession
 
 import uvicorn
 
@@ -54,13 +54,13 @@ async def get_history(session_id: str, db: Session = Depends(get_db)):
 @app.get("/sessions")
 async def get_all_sessions(db: Session = Depends(get_db)):
     # Pobiera wszystkie sesje posortowane od najnowszych
-    return db.query(Session).order_by(Session.created_at.desc()).all()
+    return db.query(ChatSession).order_by(ChatSession.created_at.desc()).all()
 
 
 # ENDPOINT do zmiany nazwy sesji
 @app.patch("/sessions/{session_id}")
 async def update_session_title(session_id: str, title: str, db: Session = Depends(get_db)):
-    db_session = db.query(Session).filter(Session.id == session_id).first()
+    db_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Sesja nie znaleziona")
     db_session.title = title
@@ -73,12 +73,12 @@ async def update_session_title(session_id: str, title: str, db: Session = Depend
 async def ask_lawyer(query: Query, db: Session = Depends(get_db)):
     try:
         # zarządzanie sesją - sprawdzenie czy sesja już istnieje w tabeli sessions
-        db_session = db.query(Session).filter(Session.id == query.session_id).first()
+        db_session = db.query(ChatSession).filter(ChatSession.id == query.session_id).first()
 
         if not db_session:
             # jeśli nie istnieje tworzy nową sesję ## domyślny tytuł to fragment pytania (pierwsze 30 znaków)
             short_title = (query.question[:30] + '...') if len(query.question) > 30 else query.question
-            db_session = Session(id=query.session_id, title=short_title)
+            db_session = ChatSession(id=query.session_id, title=short_title)
             db.add(db_session)
             db.commit()
 
