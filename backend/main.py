@@ -68,6 +68,18 @@ async def update_session_title(session_id: str, title: str, db: Session = Depend
     return db_session
 
 
+# ENDPOINT do usuwania sesji
+@app.delete("/sessions/{session_id}")
+async def delete_session(session_id: str, db: Session = Depends(get_db)):
+    db_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Sesja nie znaleziona")
+    
+    db.delete(db_session)
+    db.commit()
+    return {"message": "Sesja i powiązane logi zostały usunięte"}
+
+
 # ENDPOINT Z LOGOWANIEM
 @app.post("/ask")
 async def ask_lawyer(query: Query, db: Session = Depends(get_db)):

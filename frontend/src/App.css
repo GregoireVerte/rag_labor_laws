@@ -210,3 +210,26 @@ body {
   background: #cbd5e0;
   border-radius: 10px;
 }
+
+.delete-session-btn {
+  background: transparent;
+  color: #95a5a6;
+  border: none;
+  font-size: 20px;
+  padding: 0 5px;
+  cursor: pointer;
+  opacity: 0; /* Ukryty domyślnie */
+  transition: all 0.2s;
+  width: auto;
+  max-width: 30px;
+}
+
+/* Pokazuje przycisk tylko po najechaniu myszką na dany element listy */
+.session-item:hover .delete-session-btn {
+  opacity: 1;
+}
+
+.delete-session-btn:hover {
+  color: #e74c3c;
+  transform: scale(1.2);
+}

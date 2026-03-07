@@ -101,6 +101,25 @@ function App() {
     // dzięki temu przejście jest płynne
   };
 
+  const deleteSession = async (e, id) => {
+    e.stopPropagation(); // Ważne: zapobiega otwarciu sesji przy kliknięciu w "X"
+    if (!window.confirm("Czy na pewno chcesz usunąć tę rozmowę?")) return;
+
+    try {
+      await axios.delete(`http://localhost:8000/sessions/${id}`);
+
+      // Usuwa sesję z lokalnego stanu, żeby zniknęła z listy
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+
+      // Jeśli usunięto sesję, która jest obecnie otwarta - zacznie nowy wątek
+      if (id === sessionId) {
+        startNewChat();
+      }
+    } catch (error) {
+      console.error("Błąd podczas usuwania sesji:", error);
+    }
+  };
+
   return (
     <div className="layout">
       {/* SIDEBAR */}
@@ -117,6 +136,14 @@ function App() {
             >
               <span className="session-icon">💬</span>
               <span className="session-title">{s.title}</span>
+
+              {/* Przycisk usuwania */}
+              <button
+                className="delete-session-btn"
+                onClick={(e) => deleteSession(e, s.id)}
+              >
+                ×
+              </button>
             </div>
           ))}
         </div>
