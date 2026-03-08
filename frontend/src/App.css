@@ -233,3 +233,19 @@ body {
   color: #e74c3c;
   transform: scale(1.2);
 }
+
+.copy-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.6;
+  width: auto; /* resetuje 100% z ogólnego button */
+}
+.copy-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}

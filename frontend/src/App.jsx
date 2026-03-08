@@ -57,6 +57,11 @@ function App() {
     scrollToBottom();
   }, [messages, loading]);
 
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    alert("Skopiowano do schowka!");
+  };
+
   const askAi = async () => {
     if (!question.trim()) return;
     const userQuery = question;
@@ -160,6 +165,17 @@ function App() {
             {messages.map((msg, index) => (
               <div key={index} className={`message-bubble ${msg.role}`}>
                 <div className="message-content">{msg.text}</div>
+
+                {msg.role === "assistant" && (
+                  <button
+                    className="copy-btn"
+                    onClick={() => copyToClipboard(msg.text)}
+                    title="Kopiuj"
+                  >
+                    📋
+                  </button>
+                )}
+
                 {msg.role === "assistant" && msg.sources?.length > 0 && (
                   <div className="message-sources">
                     {msg.sources.map((src) => (
