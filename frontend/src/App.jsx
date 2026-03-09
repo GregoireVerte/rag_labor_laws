@@ -166,15 +166,14 @@ function App() {
               <div key={index} className={`message-bubble ${msg.role}`}>
                 <div className="message-content">{msg.text}</div>
 
-                {msg.role === "assistant" && (
-                  <button
-                    className="copy-btn"
-                    onClick={() => copyToClipboard(msg.text)}
-                    title="Kopiuj"
-                  >
-                    📋
-                  </button>
-                )}
+                {/* Przycisk kopiowania dla każdej wiadomości chatu (User i AI) */}
+                <button
+                  className="copy-btn"
+                  onClick={() => copyToClipboard(msg.text)}
+                  title="Kopiuj treść"
+                >
+                  📋
+                </button>
 
                 {msg.role === "assistant" && msg.sources?.length > 0 && (
                   <div className="message-sources">
