@@ -2,7 +2,9 @@ import os
 from dotenv import load_dotenv
 from groq import Groq
 from qdrant_client import QdrantClient
+from qdrant_client.http import models
 from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding, SparseTextEmbedding
 
 
 load_dotenv()
@@ -10,10 +12,19 @@ load_dotenv()
 
 class LaborLawRAG:
     def __init__(self, collection_name="labor_code_pl"):
+        ## 1. Połączenie z bazą
         self.client = QdrantClient(host="localhost", port=6333)
-        self.model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', device='cuda')
-        self.groq = Groq(api_key=os.environ.get("GROQ_API_KEY"))
         self.collection_name = collection_name
+
+        ## 2. LLM
+        self.groq = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
+        ## 3. Modele do Hybrid Search (zamiast starego SentenceTransformer) ## BGE-M3 to standard 2026 – wspiera dense i sparse jednocześnie
+        self.dense_model = TextEmbedding(model_name="BAAI/bge-m3")
+        self.sparse_model = SparseTextEmbedding(model_name="BAAI/bge-m3")
+
+        ## 4. Parametr Alpha (balans między sensem a słowem kluczowym)
+        self.alpha = 0.7
 
     def get_context(self, query, limit=15):
         query_vector = self.model.encode(query).tolist()
