@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from groq import Groq
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
-from sentence_transformers import SentenceTransformer
 from fastembed import TextEmbedding, SparseTextEmbedding
 
 
@@ -19,18 +18,27 @@ class LaborLawRAG:
         ## 2. LLM
         self.groq = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-        ## 3. Modele do Hybrid Search (zamiast starego SentenceTransformer) ## BGE-M3 to standard 2026 – wspiera dense i sparse jednocześnie
-        self.dense_model = TextEmbedding(model_name="BAAI/bge-m3")
-        self.sparse_model = SparseTextEmbedding(model_name="BAAI/bge-m3")
+        ## 3. Modele do Hybrid Search (zamiast starego SentenceTransformer)
+        self.dense_model = TextEmbedding(model_name="intfloat/multilingual-e5-large")
+        self.sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
 
         ## 4. Parametr Alpha (balans między sensem a słowem kluczowym)
         self.alpha = 0.7
 
-    def get_context(self, query, limit=15):
-        query_vector = self.model.encode(query).tolist()
+    def get_context(self, query, limit=20):
+        # 1. Generowanie wektorów z pytania
+        query_dense = list(self.dense_model.embed([query]))[0].tolist()
+        query_sparse = list(self.sparse_model.embed([query]))[0].as_object()
+
+        # 2. Hybrydowe wyszukiwanie (Hybrid Search)
+        ### używa Prefetch, aby pobrać wyniki z obu światów i połączyć je algorytmem RRF
         results = self.client.query_points(
             collection_name=self.collection_name,
-            query=query_vector,
+            prefetch=[
+                models.Prefetch(query=query_dense, using="", limit=limit), # szuka po sensie
+                models.Prefetch(query=query_sparse, using="text-sparse", limit=limit), # szuka po słowach
+            ],
+            query=models.FusionQuery(fusion=models.Fusion.RRF), # Łączenie wyników (Reciprocal Rank Fusion)
             limit=limit,
             with_payload=True
         ).points
@@ -39,7 +47,7 @@ class LaborLawRAG:
         sources = set() #### set() żeby uniknąć duplikatów numerów artykułów
 
         for res in results:
-            art_id = res.payload.get('art_id', 'Nieznany')
+            art_id = res.payload.get('metadata', {}).get('art_id', 'Nieznany')
             content = res.payload.get('content', '')
             context_parts.append(f"[{art_id}]: {content}")
             sources.add(art_id)
