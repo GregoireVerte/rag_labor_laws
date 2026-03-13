@@ -1,0 +1,202 @@
+[
+  {
+    "question": "Kogo w świetle prawa uznaje się za pracownika?",
+    "expected_art": "Art. 2"
+  },
+  {
+    "question": "Jaka jest maksymalna długość trwania umowy o pracę na okres próbny?",
+    "expected_art": "Art. 25"
+  },
+  {
+    "question": "Jaki jest łączny dopuszczalny okres zatrudnienia na podstawie umów o pracę na czas określony między tymi samymi stronami?",
+    "expected_art": "Art. 25(1)"
+  },
+  {
+    "question": "W jakiej formie powinna zostać zawarta umowa o pracę?",
+    "expected_art": "Art. 29"
+  },
+  {
+    "question": "Ile trwa okres wypowiedzenia, gdy pracownik był zatrudniony u danego pracodawcy przez co najmniej 3 lata?",
+    "expected_art": "Art. 36"
+  },
+  {
+    "question": "Ile dni wolnego na poszukiwanie pracy przysługuje pracownikowi w okresie trzymiesięcznego wypowiedzenia dokonanego przez pracodawcę?",
+    "expected_art": "Art. 37"
+  },
+  {
+    "question": "Czy pracodawca musi podać przyczynę w oświadczeniu o wypowiedzeniu umowy o pracę zawartej na czas nieokreślony?",
+    "expected_art": "Art. 30"
+  },
+  {
+    "question": "Jaka jest minimalna wysokość odszkodowania za naruszenie przez pracodawcę zasady równego traktowania w zatrudnieniu?",
+    "expected_art": "Art. 18(3d)"
+  },
+  {
+    "question": "Do jakiej wysokości wynagrodzenia pracownik zachowuje prawo w okresie choroby trwającej łącznie do 33 dni w roku?",
+    "expected_art": "Art. 92"
+  },
+  {
+    "question": "W jakim terminie pracodawca musi wydać pracownikowi świadectwo pracy?",
+    "expected_art": "Art. 97"
+  },
+  {
+    "question": "Jakie kary porządkowe może stosować pracodawca wobec pracownika?",
+    "expected_art": "Art. 108"
+  },
+  {
+    "question": "Ile godzin wynosi dobowa norma czasu pracy?",
+    "expected_art": "Art. 129"
+  },
+  {
+    "question": "Ile czasu powinna trwać przerwa w pracy, jeżeli dobowy wymiar czasu pracy pracownika wynosi co najmniej 6 godzin?",
+    "expected_art": "Art. 134"
+  },
+  {
+    "question": "Jaki jest minimalny wymiar nieprzerwanego odpoczynku dobowego przysługującego pracownikowi?",
+    "expected_art": "Art. 132"
+  },
+  {
+    "question": "Jaka jest maksymalna liczba godzin nadliczbowych w roku kalendarzowym w związku ze szczególnymi potrzebami pracodawcy, jeśli limity nie zostały zmienione w układzie zbiorowym?",
+    "expected_art": "Art. 151"
+  },
+  {
+    "question": "Jaki jest wymiar urlopu wypoczynkowego dla pracownika zatrudnionego co najmniej 10 lat?",
+    "expected_art": "Art. 154"
+  },
+  {
+    "question": "W jakim wymiarze przysługuje urlop macierzyński w przypadku urodzenia jednego dziecka przy jednym porodzie?",
+    "expected_art": "Art. 180"
+  },
+  {
+    "question": "Kogo uznaje się za pracownika młodocianego?",
+    "expected_art": "Art. 190"
+  },
+  {
+    "question": "Jakie roszczenie przysługuje pracownikowi, z którym rozwiązano umowę bez wypowiedzenia z naruszeniem przepisów?",
+    "expected_art": "Art. 56"
+  },
+  {
+    "question": "Ile dni urlopu na żądanie może wykorzystać pracownik w każdym roku kalendarzowym?",
+    "expected_art": "Art. 167(2)"
+  },
+  {
+    "question": "Mój szef chce, bym podpisał umowę zlecenia zamiast umowy o pracę, mimo że będę pracować w biurze od 8 do 16 pod jego ścisłym nadzorem. Czy to dozwolone?",
+    "expected_art": "Art. 22"
+  },
+  {
+    "question": "Firma, w której pracuję, została sprzedana innemu przedsiębiorcy. Co stanie się z moimi dotychczasowymi warunkami pracy?",
+    "expected_art": "Art. 23(1)"
+  },
+  {
+    "question": "Pracuję na czwartej z kolei umowie na czas określony. Jakie są skutki prawne takiej sytuacji?",
+    "expected_art": "Art. 25(1)"
+  },
+  {
+    "question": "Pracodawca zwolnił mnie z obowiązku świadczenia pracy do końca okresu wypowiedzenia. Czy za ten czas otrzymam pensję?",
+    "expected_art": "Art. 36(2)"
+  },
+  {
+    "question": "Brakuje mi 3 lat do osiągnięcia wieku emerytalnego. Czy pracodawca może mi wypowiedzieć umowę o pracę?",
+    "expected_art": "Art. 39"
+  },
+  {
+    "question": "Pracodawca powierzył mi na dwa miesiące inną pracę niż określona w umowie z powodu nagłej potrzeby, ale moje wynagrodzenie nie uległo zmianie. Czy musiał zmieniać umowę?",
+    "expected_art": "Art. 42"
+  },
+  {
+    "question": "Pracownik stawił się w biurze w stanie nietrzeźwości. Chcę go zwolnić w trybie natychmiastowym z jego winy. Na jaki przepis się powołać?",
+    "expected_art": "Art. 52"
+  },
+  {
+    "question": "Pracodawca spóźnia się z wypłatą pensji o dwa tygodnie. Czy mogę rozwiązać umowę bez wypowiedzenia z jego winy?",
+    "expected_art": "Art. 55"
+  },
+  {
+    "question": "Chcę wykonywać swoje obowiązki z domu przy użyciu internetu i komputera. Jakie przepisy regulują taką formę pracy?",
+    "expected_art": "Art. 67(18)"
+  },
+  {
+    "question": "W zakładzie pracy zepsuła się sieć elektryczna i nie mogłem pracować przez całą dniówkę, choć byłem gotowy. Czy należy mi się zapłata?",
+    "expected_art": "Art. 81"
+  },
+  {
+    "question": "Mam zajęcie komornicze z tytułu niespłaconego kredytu. Ile maksymalnie może mi potrącić pracodawca z pensji?",
+    "expected_art": "Art. 87"
+  },
+  {
+    "question": "Mój przełożony od dłuższego czasu mnie ośmiesza i izoluje od reszty zespołu, co spowodowało u mnie rozstrój zdrowia. O co mogę wnioskować?",
+    "expected_art": "Art. 94(3)"
+  },
+  {
+    "question": "Chcę pracować dodatkowo w innej firmie po godzinach. Czy pracodawca może mi tego zabronić w umowie?",
+    "expected_art": "Art. 101(1)"
+  },
+  {
+    "question": "Firma wysłała mnie na obowiązkowy kurs podnoszący kwalifikacje. Czy czas spędzony na nauce wlicza się do mojego czasu pracy?",
+    "expected_art": "Art. 103(1)"
+  },
+  {
+    "question": "Zgubiłem powierzone mi przez firmę pieniądze, które miałem wpłacić do banku. Czy odpowiadam za tę stratę w pełnej wysokości?",
+    "expected_art": "Art. 124"
+  },
+  {
+    "question": "Mój syn nagle uległ wypadku w szkole i muszę natychmiast tam pojechać. Z jakiego zwolnienia od pracy z powodu siły wyższej mogę skorzystać?",
+    "expected_art": "Art. 148(1)"
+  },
+  {
+    "question": "Zostałem wezwany do pracy w sobotę, która jest dla mnie dniem wolnym. Czy pracodawca musi mi oddać inny dzień wolny?",
+    "expected_art": "Art. 151(3)"
+  },
+  {
+    "question": "Jestem w 4. miesiącu ciąży, a szef chce mnie zwolnić za wypowiedzeniem. Czy ma do tego prawo?",
+    "expected_art": "Art. 177"
+  },
+  {
+    "question": "Wychowuję dziecko, które ma 3 lata. Czy pracodawca może mnie zmusić do pracy w godzinach nadliczbowych?",
+    "expected_art": "Art. 178"
+  },
+  {
+    "question": "Mój pracodawca nie chce mi wydać świadectwa pracy po zakończeniu umowy. Do jakiego organu mogę się zwrócić o nakazanie wydania dokumentu?",
+    "expected_art": "Art. 97(1)"
+  },
+  {
+    "question": "Czy pracownik może zrzec się prawa do wynagrodzenia, aby pomóc firmie w trudnej sytuacji?",
+    "expected_art": "Art. 84"
+  },
+  {
+    "question": "Co dzieje się ze stosunkiem pracy w przypadku śmierci pracownika?",
+    "expected_art": "Art. 63(1)"
+  },
+  {
+    "question": "Czy umowa o pracę wygasa automatycznie z dniem śmierci pracodawcy będącego osobą fizyczną?",
+    "expected_art": "Art. 63(2)"
+  },
+  {
+    "question": "Czy pracodawca może ukarać pracownika karą pieniężną za nieprzestrzeganie przepisów przeciwpożarowych w wysokości połowy jego miesięcznej pensji?",
+    "expected_art": "Art. 108"
+  },
+  {
+    "question": "Czy czas odpracowywania wyjścia prywatnego na wniosek pracownika stanowi pracę w godzinach nadliczbowych?",
+    "expected_art": "Art. 151"
+  },
+  {
+    "question": "Czy pracodawca może odwołać pracownika z urlopu wypoczynkowego, jeśli przebywa on za granicą?",
+    "expected_art": "Art. 167"
+  },
+  {
+    "question": "Czy dopuszczalne jest zatrudnienie kobiety w ciąży przy pracach związanych z nadmiernym wysiłkiem fizycznym?",
+    "expected_art": "Art. 176"
+  },
+  {
+    "question": "Czy podczas rekrutacji pracodawca ma prawo żądać informacji o wysokości zarobków u poprzedniego pracodawcy?",
+    "expected_art": "Art. 22(1)"
+  },
+  {
+    "question": "Po jakim czasie przedawniają się roszczenia ze stosunku pracy?",
+    "expected_art": "Art. 291"
+  },
+  {
+    "question": "Czy dziecko poniżej 16 roku życia może wykonywać pracę zarobkową bez zezwolenia inspektora pracy?",
+    "expected_art": "Art. 304(5)"
+  }
+]
