@@ -12,7 +12,7 @@ load_dotenv()
 class LaborLawRAG:
     def __init__(self, collection_name="labor_code_pl"):
         ## 1. Połączenie z bazą
-        self.client = QdrantClient(host="localhost", port=6333)
+        self.client = QdrantClient(host="localhost", port=6333, check_compatibility=False)
         self.collection_name = collection_name
 
         ## 2. LLM
