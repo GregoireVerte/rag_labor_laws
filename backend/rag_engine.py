@@ -31,14 +31,14 @@ class LaborLawRAG:
         query_sparse = list(self.sparse_model.embed([query]))[0].as_object()
 
         # 2. Hybrydowe wyszukiwanie (Hybrid Search)
-        ### używa Prefetch, aby pobrać wyniki z obu światów i połączyć je algorytmem RRF
+        ### models.Fusion.DBS (Distribution Based Score) ### Ten model normalizuje wyniki gęste i rzadkie do wspólnej skali
         results = self.client.query_points(
             collection_name=self.collection_name,
             prefetch=[
-                models.Prefetch(query=query_dense, using="", limit=limit), # szuka po sensie
+                models.Prefetch(query=query_dense, using="", limit=limit, score_threshold=None), # szuka po sensie
                 models.Prefetch(query=query_sparse, using="text-sparse", limit=limit), # szuka po słowach
             ],
-            query=models.FusionQuery(fusion=models.Fusion.RRF), # Łączenie wyników (Reciprocal Rank Fusion)
+            query=models.FusionQuery(fusion=models.Fusion.DBS),
             limit=limit,
             with_payload=True
         ).points
