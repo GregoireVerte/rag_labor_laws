@@ -1,8 +1,7 @@
 import os
 from dotenv import load_dotenv
 from groq import Groq
-from qdrant_client import QdrantClient
-from qdrant_client.http import models
+from qdrant_client import QdrantClient, models
 from fastembed import TextEmbedding, SparseTextEmbedding
 
 
@@ -27,18 +26,27 @@ class LaborLawRAG:
 
     def get_context(self, query, limit=20):
         # 1. Generowanie wektorów z pytania
-        query_dense = list(self.dense_model.embed([query]))[0].tolist()
-        query_sparse = list(self.sparse_model.embed([query]))[0].as_object()
+        dense_vec = list(self.dense_model.embed([query]))[0].tolist()
+        sparse_vec = list(self.sparse_model.embed([query]))[0]
+
+        ## Ręczne skalowanie wagą alpha # mnożenie każdej wartości w wektorze przez wagę
+        query_dense_scaled = [v * self.alpha for v in dense_vec]
+
+        ## dla sparse mnożenie wartości w słowniku (indices pozostają bez zmian)
+        query_sparse_scaled = sparse_vec
+        for i in range(len(query_sparse_scaled.values)):
+            query_sparse_scaled.values[i] *= (1.0 - self.alpha)
 
         # 2. Hybrydowe wyszukiwanie (Hybrid Search)
-        ### models.Fusion.DBS (Distribution Based Score) ### Ten model normalizuje wyniki gęste i rzadkie do wspólnej skali
+        ### DBS (Distribution Based Score)
         results = self.client.query_points(
             collection_name=self.collection_name,
             prefetch=[
-                models.Prefetch(query=query_dense, using="", limit=limit, score_threshold=None), # szuka po sensie
-                models.Prefetch(query=query_sparse, using="text-sparse", limit=limit), # szuka po słowach
+                models.Prefetch(query=query_dense_scaled, using="", limit=limit), # szuka po sensie
+                models.Prefetch(query=query_sparse_scaled.as_object(), using="text-sparse", limit=limit), # szuka po słowach
             ],
-            query=models.FusionQuery(fusion=models.Fusion.DBS),
+            ## użycie dbsf bez wag (bo wagi są już w wektorach)
+            query=models.FusionQuery(fusion="dbsf"),
             limit=limit,
             with_payload=True
         ).points
