@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from groq import Groq
 from qdrant_client import QdrantClient, models
 from fastembed import TextEmbedding, SparseTextEmbedding
+from sentence_transformers import CrossEncoder
 
 
 load_dotenv()
@@ -23,6 +24,9 @@ class LaborLawRAG:
 
         ## 4. Parametr Alpha (balans między sensem a słowem kluczowym)
         self.alpha = 0.7
+
+        ## 5. Reranker (Sędzia - Cross-Encoder) ### Model, który bardzo dokładnie porównuje parę (pytanie, artykuł)
+        self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L12-v2')
 
     def get_context(self, query, limit=20):
         # 1. Generowanie wektorów z pytania
@@ -51,7 +55,27 @@ class LaborLawRAG:
             with_payload=True
         ).points
 
+        # 3. Reranking (Cross-Encoder)
+        if results:
+            ### Przygotowuje pary (pytanie, treść artykułu) do oceny
+            pairs = [[query, res.payload.get('content', '')] for res in results]
+            rerank_scores = self.reranker.predict(pairs)
+
+            ### Łączy wyniki z nowymi punktami w listę krotek (score, point)
+            scored_results = list(zip(rerank_scores, results))
+
+            ### Sortuje po nowym score (indeks 0) od najwyższego
+            scored_results.sort(key=lambda x: x[0], reverse=True)
+
+            ### Wyciąga same punkty w nowej kolejności
+            results = [item[1] for item in scored_results]
+
+            print(f"DEBUG: Reranked {len(results)} items")
+
+        # 4. Formatowanie wyników (już posortowanych przez Rerankera)
+
         context_parts = []
+        
         sources = set() #### set() żeby uniknąć duplikatów numerów artykułów
 
         for res in results:
