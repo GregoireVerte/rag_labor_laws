@@ -26,7 +26,7 @@ class LaborLawRAG:
         self.alpha = 0.7
 
         ## 5. Reranker (Sędzia - Cross-Encoder) ### Model, który bardzo dokładnie porównuje parę (pytanie, artykuł)
-        self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L12-v2')
+        self.reranker = CrossEncoder("BAAI/bge-reranker-v2-m3")
 
     def get_context(self, query, limit=20):
         # 1. Generowanie wektorów z pytania
@@ -61,6 +61,9 @@ class LaborLawRAG:
             pairs = [[query, res.payload.get('content', '')] for res in results]
             rerank_scores = self.reranker.predict(pairs)
 
+            ### DEBUG: pierwsze 3 wyniki, żeby sprawdzić czy model działa
+            print(f"DEBUG Scores: {rerank_scores[:3]}")
+
             ### Łączy wyniki z nowymi punktami w listę krotek (score, point)
             scored_results = list(zip(rerank_scores, results))
 
@@ -70,21 +73,25 @@ class LaborLawRAG:
             ### Wyciąga same punkty w nowej kolejności
             results = [item[1] for item in scored_results]
 
-            print(f"DEBUG: Reranked {len(results)} items")
+            # print(f"DEBUG: Reranked {len(results)} items")
 
-        # 4. Formatowanie wyników (już posortowanych przez Rerankera)
+        # 4. Formatowanie wyników (zachowując kolejność z Rerankera)
 
         context_parts = []
         
-        sources = set() #### set() żeby uniknąć duplikatów numerów artykułów
+        sources = [] # list zamiast set, aby zachować KOLEJNOŚĆ
 
         for res in results:
             art_id = res.payload.get('metadata', {}).get('art_id', 'Nieznany')
             content = res.payload.get('content', '')
             context_parts.append(f"[{art_id}]: {content}")
-            sources.add(art_id)
 
-        return "\n\n".join(context_parts), sorted(list(sources))
+            # dodaje do źródeł tylko jeśli jeszcze go nie ma (deduplikacja), ale NIE SORTUJE na końcu!
+            if art_id not in sources:
+                sources.append(art_id)
+
+        # zwraca sources bez funkcji sorted()
+        return "\n\n".join(context_parts), sources
 
     def rewrite_query(self, question, chat_history):
         if not chat_history:
