@@ -62,7 +62,7 @@ class LaborLawRAG:
             rerank_scores = self.reranker.predict(pairs)
 
             ### DEBUG: pierwsze 3 wyniki, żeby sprawdzić czy model działa
-            print(f"DEBUG Scores: {rerank_scores[:3]}")
+            ### print(f"DEBUG Scores: {rerank_scores[:3]}")
 
             ### Łączy wyniki z nowymi punktami w listę krotek (score, point)
             scored_results = list(zip(rerank_scores, results))
