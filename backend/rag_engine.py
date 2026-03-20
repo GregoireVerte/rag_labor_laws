@@ -81,7 +81,8 @@ class LaborLawRAG:
         
         sources = [] # list zamiast set, aby zachować KOLEJNOŚĆ
 
-        for res in results:
+        ## reranker widział 20, ale do LLM-a wyśle tylko top 10 aby wziąć tylko najlepsze
+        for res in results[:10]:
             art_id = res.payload.get('metadata', {}).get('art_id', 'Nieznany')
             content = res.payload.get('content', '')
             context_parts.append(f"[{art_id}]: {content}")
@@ -133,6 +134,11 @@ class LaborLawRAG:
                 Jeśli odpowiedzi nie ma w kontekście, poinformuj o tym. 
                 Odpowiedź musi być w języku polskim, chyba że użytkownik wyraźnie zaznaczy, że ma być w innym konkretnym języku (np. angielskim).
                 WAŻNE: Używaj wyłącznie alfabetu łacińskiego. Nie używaj cyrylicy ani znaków azjatyckich.
+                Zawsze wskazuj podstawę prawną (numer artykułu) dla każdej podanej informacji, np. [Art. 100].
+                Jeśli artykuły zawierają terminy, podawaj ich definicje, jeśli są obecne w kontekście.
+                Formatuj odpowiedzi w sposób przejrzysty: używaj punktów i pogrubień dla kluczowych terminów prawnych.
+                Nigdy nie interpretuj przepisów w sposób wykraczający poza brzmienie dostarczonego tekstu.
+                Jeśli kontekst zawiera sprzeczne informacje, wskaż obie i zaznacz, że przepisy mogą być interpretowane wieloznacznie.
 
                 KONTEKST:
                 {context}"""
