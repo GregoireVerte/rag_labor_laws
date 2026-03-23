@@ -1,9 +1,9 @@
 import os
 from dotenv import load_dotenv
+import requests
+import time
 from groq import Groq
 from qdrant_client import QdrantClient, models
-from fastembed import TextEmbedding, SparseTextEmbedding
-from sentence_transformers import CrossEncoder
 
 
 load_dotenv()
@@ -11,78 +11,62 @@ load_dotenv()
 
 class LaborLawRAG:
     def __init__(self, collection_name="labor_code_pl"):
-        ## 1. Połączenie z bazą (Qdrant Cloud)
-        qdrant_url = os.getenv("QDRANT_URL")
-        qdrant_api_key = os.getenv("QDRANT_API_KEY")
-
-        self.client = QdrantClient(
-            url=qdrant_url,
-            api_key=qdrant_api_key
-        )
-        
+        ## Połączenie z bazą (Qdrant Cloud)
+        self.client = QdrantClient(url=os.getenv("QDRANT_URL"), api_key=os.getenv("QDRANT_API_KEY"))
         self.collection_name = collection_name
+        
+        ## LLM
+        self.groq_api_key = os.getenv("GROQ_API_KEY")
 
-        ## 2. LLM
-        self.groq = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+        ## Hugging face
+        self.hf_token = os.getenv("HF_API_KEY")
+        ### URL-e do modeli na Hugging Face
+        self.embed_url = "https://api-inference.huggingface.co/models/intfloat/multilingual-e5-large"
+        self.rerank_url = "https://api-inference.huggingface.co/models/BAAI/bge-reranker-v2-m3"
 
-        ## 3. Modele do Hybrid Search (zamiast starego SentenceTransformer)
-        self.dense_model = TextEmbedding(model_name="intfloat/multilingual-e5-large")
-        self.sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
-
-        ## 4. Parametr Alpha (balans między sensem a słowem kluczowym)
-        self.alpha = 0.7
-
-        ## 5. Reranker (Sędzia - Cross-Encoder) ### Model, który bardzo dokładnie porównuje parę (pytanie, artykuł)
-        self.reranker = CrossEncoder("BAAI/bge-reranker-v2-m3")
+    def query_hf(self, url, payload):
+        headers = {"Authorization": f"Bearer {self.hf_token}"}
+        response = requests.post(url, headers=headers, json=payload)
+        return response.json()
 
     def get_context(self, query, limit=20):
-        # 1. Generowanie wektorów z pytania
-        dense_vec = list(self.dense_model.embed([query]))[0].tolist()
-        sparse_vec = list(self.sparse_model.embed([query]))[0]
+        # 1. Generowanie wektora przez HF API (Dense)
+        ### Model E5 wymaga przedrostka "query: " dla pytań
+        hf_resp = self.query_hf(self.embed_url, {"inputs": f"query: {query}"})
 
-        ## Ręczne skalowanie wagą alpha # mnożenie każdej wartości w wektorze przez wagę
-        query_dense_scaled = [v * self.alpha for v in dense_vec]
+        # Obsługa "budzenia się" modelu na HF (Free Tier potrzebuje chwili)
+        if isinstance(hf_resp, dict) and "estimated_time" in hf_resp:
+            time.sleep(hf_resp["estimated_time"])
+            hf_resp = self.query_hf(self.embed_url, {"inputs": f"query: {query}"})
 
-        ## dla sparse mnożenie wartości w słowniku (indices pozostają bez zmian)
-        query_sparse_scaled = sparse_vec
-        for i in range(len(query_sparse_scaled.values)):
-            query_sparse_scaled.values[i] *= (1.0 - self.alpha)
+        dense_vec = hf_resp
 
-        # 2. Hybrydowe wyszukiwanie (Hybrid Search)
-        ### DBS (Distribution Based Score)
-        results = self.client.query_points(
+
+        # 2. Wyszukiwanie w Qdrant (Tylko Dense bo Sparse przez API jest trudne)
+        results = self.client.search(
             collection_name=self.collection_name,
-            prefetch=[
-                models.Prefetch(query=query_dense_scaled, using="", limit=limit), # szuka po sensie
-                models.Prefetch(query=query_sparse_scaled.as_object(), using="text-sparse", limit=limit), # szuka po słowach
-            ],
-            ## użycie dbsf bez wag (bo wagi są już w wektorach)
-            query=models.FusionQuery(fusion="dbsf"),
+            query_vector=dense_vec,
             limit=limit,
             with_payload=True
-        ).points
+        )
 
-        # 3. Reranking (Cross-Encoder)
+
+        # 3. Reranking przez HF API
         if results:
-            ### Przygotowuje pary (pytanie, treść artykułu) do oceny
-            pairs = [[query, res.payload.get('content', '')] for res in results]
-            rerank_scores = self.reranker.predict(pairs)
+            ### Przygotowuje pary
+            pairs = [{"text": query, "text_pair": res.payload.get('content', '')} for res in results]
+            rerank_resp = self.query_hf(self.rerank_url, {"inputs": pairs})
 
-            ### DEBUG: pierwsze 3 wyniki, żeby sprawdzić czy model działa
-            ### print(f"DEBUG Scores: {rerank_scores[:3]}")
+            ### Łączy wyniki i sortuje ### HF zwraca listę słowników z 'score'
+            scored_results = []
+            for i, score_data in enumerate(rerank_resp):
+                scored_results.append((score_data['score'], results[i]))
 
-            ### Łączy wyniki z nowymi punktami w listę krotek (score, point)
-            scored_results = list(zip(rerank_scores, results))
-
-            ### Sortuje po nowym score (indeks 0) od najwyższego
             scored_results.sort(key=lambda x: x[0], reverse=True)
 
-            ### Wyciąga same punkty w nowej kolejności
             results = [item[1] for item in scored_results]
 
-            # print(f"DEBUG: Reranked {len(results)} items")
-
-        # 4. Formatowanie wyników (zachowując kolejność z Rerankera)
+        # 4. Formatowanie wyników - Lejek (Top 10)
 
         context_parts = []
         
