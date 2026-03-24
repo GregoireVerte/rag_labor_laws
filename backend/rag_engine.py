@@ -27,6 +27,17 @@ class LaborLawRAG:
     def query_hf(self, url, payload):
         headers = {"Authorization": f"Bearer {self.hf_token}"}
         response = requests.post(url, headers=headers, json=payload)
+
+        ### jeśli model się ładuje (503) czeka i ponawia
+        if response.status_code == 503:
+            wait_time = response.json().get("estimated_time", 20)
+            print(f"Model się ładuje, czekam {wait_time}s...")
+            time.sleep(wait_time)
+            return self.query_hf(url, payload)
+
+        if response.status_code != 200:
+            raise Exception(f"Błąd Hugging Face ({response.status_code}): {response.text}")
+
         return response.json()
 
     def get_context(self, query, limit=20):
@@ -34,12 +45,13 @@ class LaborLawRAG:
         ### Model E5 wymaga przedrostka "query: " dla pytań
         hf_resp = self.query_hf(self.embed_url, {"inputs": f"query: {query}"})
 
-        # Obsługa "budzenia się" modelu na HF (Free Tier potrzebuje chwili)
-        if isinstance(hf_resp, dict) and "estimated_time" in hf_resp:
-            time.sleep(hf_resp["estimated_time"])
-            hf_resp = self.query_hf(self.embed_url, {"inputs": f"query: {query}"})
-
-        dense_vec = hf_resp
+        ### HF często zwraca listę list [[...]] -> wyciąganie pierwszego wektora
+        if isinstance(hf_resp, list) and isinstance(hf_resp[0], list):
+            dense_vec = hf_resp[0]
+        elif isinstance(hf_resp, list):
+            dense_vec = hf_resp
+        else:
+            raise Exception(f"Nieoczekiwany format wektora z HF: {hf_resp}")
 
 
         # 2. Wyszukiwanie w Qdrant (Tylko Dense bo Sparse przez API jest trudne)
@@ -51,20 +63,31 @@ class LaborLawRAG:
         )
 
 
-        # 3. Reranking przez HF API
+        # 3. Reranking (Cross-Encoder) przez HF API
         if results:
-            ### Przygotowuje pary
-            pairs = [{"text": query, "text_pair": res.payload.get('content', '')} for res in results]
-            rerank_resp = self.query_hf(self.rerank_url, {"inputs": pairs})
+            #### Poprawny format dla BGE Reranker na HF Inference API
+            payload = {
+                "inputs": [
+                    {"text": query, "text_pair": res.payload.get('content', '')}
+                    for res in results
+                ]
+            }
+            rerank_resp = self.query_hf(self.rerank_url, payload)
 
-            ### Łączy wyniki i sortuje ### HF zwraca listę słowników z 'score'
-            scored_results = []
-            for i, score_data in enumerate(rerank_resp):
-                scored_results.append((score_data['score'], results[i]))
+            ## HF zwraca [{'label': 'LABEL_0', 'score': 0.99}, ...]
+            ### sortowanie wyników Qdrant na podstawie wyników z HF
+            try:
+                # Mapuje wyniki: HF zwraca wyniki w tej samej kolejności co wysłane pary
+                scored_results = []
+                for i, r in enumerate(rerank_resp):
+                    score = r.get('score', 0)
+                    scored_results.append((score, results[i]))
 
-            scored_results.sort(key=lambda x: x[0], reverse=True)
+                scored_results.sort(key=lambda x: x[0], reverse=True)
+                results = [item[1] for item in scored_results]
+            except Exception as e:
+                print(f"Reranking nieudany, używam kolejności z Qdrant. Błąd: {e}")
 
-            results = [item[1] for item in scored_results]
 
         # 4. Formatowanie wyników - Lejek (Top 10)
 
