@@ -21,8 +21,8 @@ class LaborLawRAG:
         ## Hugging face
         self.hf_token = os.getenv("HF_API_KEY")
         ### URL-e do modeli na Hugging Face
-        self.embed_url = "https://router.huggingface.co/models/intfloat/multilingual-e5-large"
-        self.rerank_url = "https://router.huggingface.co/models/BAAI/bge-reranker-v2-m3"
+        self.embed_url = "https://router.huggingface.co/hf-inference/models/intfloat/multilingual-e5-large/pipeline/feature-extraction"
+        self.rerank_url = "https://router.huggingface.co/hf-inference/models/BAAI/bge-reranker-v2-m3"
 
     def query_hf(self, url, payload):
         headers = {"Authorization": f"Bearer {self.hf_token}"}
