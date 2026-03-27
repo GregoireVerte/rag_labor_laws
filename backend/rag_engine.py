@@ -17,6 +17,7 @@ class LaborLawRAG:
         
         ## LLM
         self.groq_api_key = os.getenv("GROQ_API_KEY")
+        self.groq = Groq(api_key=self.groq_api_key)
 
         ## Hugging face
         self.hf_token = os.getenv("HF_API_KEY")
