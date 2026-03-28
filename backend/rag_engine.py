@@ -41,7 +41,7 @@ class LaborLawRAG:
 
         return response.json()
 
-    def get_context(self, query, limit=20):
+    def get_context(self, query, limit=50):
         # 1. Generowanie wektora przez HF API (Dense)
         ### Model E5 wymaga przedrostka "query: " dla pytań
         hf_resp = self.query_hf(self.embed_url, {"inputs": f"query: {query}"})
@@ -90,14 +90,14 @@ class LaborLawRAG:
                 print(f"Reranking nieudany, używam kolejności z Qdrant. Błąd: {e}")
 
 
-        # 4. Formatowanie wyników - Lejek (Top 10)
+        # 4. Formatowanie wyników - Lejek (Top 15)
 
         context_parts = []
         
         sources = [] # list zamiast set, aby zachować KOLEJNOŚĆ
 
-        ## reranker widział 20, ale do LLM-a wyśle tylko top 10 aby wziąć tylko najlepsze
-        for res in results[:10]:
+        ## reranker widział 50, ale do LLM-a wyśle tylko top 15 aby wziąć tylko najlepsze
+        for res in results[:15]:
             art_id = res.payload.get('metadata', {}).get('art_id', 'Nieznany')
             content = res.payload.get('content', '')
             context_parts.append(f"[{art_id}]: {content}")
