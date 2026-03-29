@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "./App.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const getOrCreateSessionId = () => {
   let sessionId = localStorage.getItem("chat_session_id");
   if (!sessionId) {
@@ -22,7 +24,7 @@ function App() {
   // 1. Pobieranie listy wszystkich sesji z bazy
   const fetchSessions = async () => {
     try {
-      const response = await axios.get("http://localhost:8000/sessions");
+      const response = await axios.get(`${API_BASE_URL}/sessions`);
       setSessions(response.data);
     } catch (error) {
       console.error("Błąd pobierania sesji:", error);
@@ -32,7 +34,7 @@ function App() {
   // 2. Ładowanie historii konkretnej sesji
   const loadHistory = async (id) => {
     try {
-      const response = await axios.get(`http://localhost:8000/history/${id}`);
+      const response = await axios.get(`${API_BASE_URL}/history/${id}`);
       setMessages(response.data);
       setSessionId(id);
       localStorage.setItem("chat_session_id", id);
@@ -72,7 +74,7 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await axios.post("http://localhost:8000/ask", {
+      const response = await axios.post(`${API_BASE_URL}/ask`, {
         question: userQuery,
         session_id: sessionId,
       });
@@ -111,7 +113,7 @@ function App() {
     if (!window.confirm("Czy na pewno chcesz usunąć tę rozmowę?")) return;
 
     try {
-      await axios.delete(`http://localhost:8000/sessions/${id}`);
+      await axios.delete(`${API_BASE_URL}/sessions/${id}`);
 
       // Usuwa sesję z lokalnego stanu, żeby zniknęła z listy
       setSessions((prev) => prev.filter((s) => s.id !== id));
