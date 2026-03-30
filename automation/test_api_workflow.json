@@ -1,0 +1,34 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rag-labor-laws-backend.onrender.com/ask",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "question",
+              "value": "\"Ile dni urlopu mam po 10 latach?\""
+            },
+            {
+              "name": "session_id",
+              "value": "\"n8n-test-1\""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [176, -128],
+      "id": "c6116109-f670-4568-ada5-bc9f8b7bd7d2",
+      "name": "HTTP Request"
+    }
+  ],
+  "connections": {},
+  "pinData": {},
+  "meta": {
+    "instanceId": "8d77be1f0a86b18c09aef3674669d6f62a987f1d4ac280d05055f55f3c941894"
+  }
+}

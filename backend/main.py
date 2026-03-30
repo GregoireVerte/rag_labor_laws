@@ -85,6 +85,8 @@ async def delete_session(session_id: str, db: Session = Depends(get_db)):
 @app.post("/ask")
 async def ask_lawyer(query: Query, db: Session = Depends(get_db)):
     try:
+        print(f"--- NOWE ZAPYTANIE OD: {query.session_id} ---")
+        
         # zarządzanie sesją - sprawdzenie czy sesja już istnieje w tabeli sessions
         db_session = db.query(ChatSession).filter(ChatSession.id == query.session_id).first()
 
