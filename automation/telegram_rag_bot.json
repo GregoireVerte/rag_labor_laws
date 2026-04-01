@@ -1,0 +1,95 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rag-labor-laws-backend.onrender.com/ask",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "question",
+              "value": "={{ $json.message.text }}"
+            },
+            {
+              "name": "session_id",
+              "value": "telegram-{{ $json.message.from.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [176, -128],
+      "id": "c6116109-f670-4568-ada5-bc9f8b7bd7d2",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "id": "1b985a10-9889-44d8-a1d2-127b16900dba",
+      "name": "Telegram Trigger",
+      "webhookId": "e3600685-c3e0-4bc5-90fe-3665e5a70316",
+      "credentials": {
+        "telegramApi": {
+          "id": "YuavHn3qwEQ7UUlv",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.answer }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [432, -304],
+      "id": "3d41f177-dc24-4c65-9dbf-75221f44b74e",
+      "name": "Send a text message",
+      "webhookId": "bb07e091-3e1a-42f3-91f5-b2f5b5018f4c",
+      "credentials": {
+        "telegramApi": {
+          "id": "YuavHn3qwEQ7UUlv",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8d77be1f0a86b18c09aef3674669d6f62a987f1d4ac280d05055f55f3c941894"
+  }
+}
