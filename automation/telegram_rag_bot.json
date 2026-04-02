@@ -9,7 +9,7 @@
           "parameters": [
             {
               "name": "question",
-              "value": "={{ $json.message.text }}"
+              "value": "={{ $('Telegram Trigger').item.json.message.text }}"
             },
             {
               "name": "session_id",
@@ -21,9 +21,15 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [176, -128],
+      "position": [224, -128],
       "id": "c6116109-f670-4568-ada5-bc9f8b7bd7d2",
-      "name": "HTTP Request"
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "notesInFlow": true,
+      "onError": "continueRegularOutput",
+      "notes": "Obsługa wybudzania Rendera"
     },
     {
       "parameters": {
@@ -32,7 +38,7 @@
       },
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0],
+      "position": [-144, 176],
       "id": "1b985a10-9889-44d8-a1d2-127b16900dba",
       "name": "Telegram Trigger",
       "webhookId": "e3600685-c3e0-4bc5-90fe-3665e5a70316",
@@ -51,10 +57,79 @@
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [432, -304],
+      "position": [592, -512],
       "id": "3d41f177-dc24-4c65-9dbf-75221f44b74e",
       "name": "Send a text message",
       "webhookId": "bb07e091-3e1a-42f3-91f5-b2f5b5018f4c",
+      "credentials": {
+        "telegramApi": {
+          "id": "YuavHn3qwEQ7UUlv",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendChatAction",
+        "chatId": "={{ $json.message.chat.id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [48, 48],
+      "id": "6cbbfd55-67ba-499d-b0c9-cd9cef882638",
+      "name": "Send a chat action",
+      "webhookId": "f324b64b-d0c2-452f-a5b1-426b058520d4",
+      "executeOnce": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "YuavHn3qwEQ7UUlv",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d65d8629-3e7f-469c-9376-f33bf4688087",
+              "leftValue": "={{ $json.answer }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [448, -272],
+      "id": "cc8f1f7c-52da-4c31-96e1-7d070e4750a3",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "Przepraszam, serwer potrzebuje chwili na rozruch. Spróbuj zadać to pytanie jeszcze raz za około minutę! 🤖☕",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [656, -176],
+      "id": "f5637227-e3c2-4328-8030-52b64f4f0b07",
+      "name": "Telegram (Server Error)",
+      "webhookId": "05da1350-5459-43c2-9476-270ce2e2156a",
       "credentials": {
         "telegramApi": {
           "id": "YuavHn3qwEQ7UUlv",
@@ -68,7 +143,7 @@
       "main": [
         [
           {
-            "node": "Send a text message",
+            "node": "If",
             "type": "main",
             "index": 0
           }
@@ -79,7 +154,36 @@
       "main": [
         [
           {
+            "node": "Send a chat action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a chat action": {
+      "main": [
+        [
+          {
             "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram (Server Error)",
             "type": "main",
             "index": 0
           }
