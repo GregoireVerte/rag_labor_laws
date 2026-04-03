@@ -13,7 +13,7 @@
             },
             {
               "name": "session_id",
-              "value": "telegram-{{ $json.message.from.id }}"
+              "value": "=telegram-{{ $('Telegram Trigger').item.json.message.from.id }}"
             }
           ]
         },
@@ -38,7 +38,7 @@
       },
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
-      "position": [-144, 176],
+      "position": [-272, 432],
       "id": "1b985a10-9889-44d8-a1d2-127b16900dba",
       "name": "Telegram Trigger",
       "webhookId": "e3600685-c3e0-4bc5-90fe-3665e5a70316",
@@ -136,6 +136,121 @@
           "name": "Telegram account"
         }
       }
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://rag-labor-laws-backend.onrender.com/sessions/telegram-{{ $('Telegram Trigger').item.json.message.from.id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [48, 336],
+      "id": "96c8714f-0ae7-42e6-bbda-876fe118bf42",
+      "name": "HTTP Request DELETE",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Baza danych jest czysta! 🧹 Możemy zaczynać od nowa. O co chcesz zapytać?",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [560, 336],
+      "id": "9595dce6-875e-4377-ae71-92adb1bc7adc",
+      "name": "Send a text message del confirm",
+      "webhookId": "a4357d40-3742-42c0-8e16-acf664367cb9",
+      "credentials": {
+        "telegramApi": {
+          "id": "YuavHn3qwEQ7UUlv",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ec5f7dff-04fa-4710-aaa1-1613bc7c72da",
+              "leftValue": "={{ $json.message }}",
+              "rightValue": "200, 404, 204",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "46ca117c-cb3d-4d34-ae8d-d0ceb72665e3",
+              "leftValue": "={{ $json.detail }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "1c04915f-35eb-4fa7-886d-2226a3846691",
+              "leftValue": "={{ $json.error.status }}",
+              "rightValue": 404,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [256, 336],
+      "id": "6dbc57de-0a68-4cf1-a6a7-a41510d9a136",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "be514957-016b-4bd8-a88b-3c33e3d33265",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "/reset",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [-144, 208],
+      "id": "5beef527-72f3-4477-9af8-955d952366aa",
+      "name": "If RESET"
     }
   ],
   "connections": {
@@ -154,7 +269,7 @@
       "main": [
         [
           {
-            "node": "Send a chat action",
+            "node": "If RESET",
             "type": "main",
             "index": 0
           }
@@ -184,6 +299,53 @@
         [
           {
             "node": "Telegram (Server Error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request DELETE": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Send a text message del confirm",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram (Server Error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If RESET": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request DELETE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a chat action",
             "type": "main",
             "index": 0
           }
