@@ -75,7 +75,7 @@
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [48, 48],
+      "position": [16, -384],
       "id": "6cbbfd55-67ba-499d-b0c9-cd9cef882638",
       "name": "Send a chat action",
       "webhookId": "f324b64b-d0c2-452f-a5b1-426b058520d4",
@@ -251,6 +251,36 @@
       "position": [-144, 208],
       "id": "5beef527-72f3-4477-9af8-955d952366aa",
       "name": "If RESET"
+    },
+    {
+      "parameters": {
+        "operation": "sendChatAction",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [304, -640],
+      "id": "3bb50acc-e414-4ed7-94f4-25c21341c862",
+      "name": "Send a chat action2",
+      "webhookId": "f324b64b-d0c2-452f-a5b1-426b058520d4",
+      "executeOnce": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "YuavHn3qwEQ7UUlv",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 4
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [144, -528],
+      "id": "e6340cba-5247-4f5a-908d-cc4ca1b247d8",
+      "name": "Wait 4s",
+      "webhookId": "ba5b8f18-7bb5-4362-8d9d-af534be7d67c"
     }
   ],
   "connections": {
@@ -280,7 +310,7 @@
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "Wait 4s",
             "type": "main",
             "index": 0
           }
@@ -346,6 +376,22 @@
         [
           {
             "node": "Send a chat action",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 4s": {
+      "main": [
+        [
+          {
+            "node": "Send a chat action2",
             "type": "main",
             "index": 0
           }
