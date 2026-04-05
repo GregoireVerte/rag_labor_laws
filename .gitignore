@@ -1,5 +1,6 @@
 .env
 *.env
+.env.n8n
 .ipynb_checkpoints
 qdrant_storage/
 n8n_data/
