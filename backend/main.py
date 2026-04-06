@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import os
+import requests
 
 from rag_engine import LaborLawRAG
 from database import engine, get_db
@@ -136,6 +137,37 @@ async def ask_lawyer(query: Query, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback() ### w razie błędu wycofuje zmiany w bazie
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# PROXY DLA TELEGRAMA (omija blokady Hugging Face)
+@app.api_route("/tg-proxy/{path:path}", methods=["GET", "POST"])
+async def tg_proxy(path: str, request: Request):
+    # Buduje adres do prawdziwego API Telegrama
+    url = f"https://api.telegram.org/{path}"
+    
+    # Pobiera body i parametry z n8n
+    body = await request.body()
+    params = dict(request.query_params)
+    
+    # Przesyła zapytanie do Telegrama
+    # Odfiltrowuje nagłówek 'host', żeby Telegram się nie pomylił
+    headers = {k: v for k, v in request.headers.items() if k.lower() != 'host'}
+    
+    response = requests.request(
+        method=request.method,
+        url=url,
+        params=params,
+        data=body,
+        headers=headers,
+        timeout=10
+    )
+    
+    # Zwraca odpowiedź z Telegrama prosto do n8n
+    return Response(
+        content=response.content,
+        status_code=response.status_code,
+        headers=dict(response.headers)
+    )
 
 
 @app.get("/health")
