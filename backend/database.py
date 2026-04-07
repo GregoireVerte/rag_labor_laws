@@ -23,6 +23,10 @@ if not DATABASE_URL:
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
+## usunięcie problematycznego pgbouncer=true jeśli pojawi się w adresie
+if DATABASE_URL and "pgbouncer=true" in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("?pgbouncer=true", "").replace("&pgbouncer=true", "")
+
 # tworzenie silnika bazy danych
 engine = create_engine(DATABASE_URL)
 
