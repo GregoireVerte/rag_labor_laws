@@ -1,0 +1,407 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rag-labor-laws-backend.onrender.com/ask",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "question",
+              "value": "={{ $('Telegram Trigger').item.json.message.text }}"
+            },
+            {
+              "name": "session_id",
+              "value": "=telegram-{{ $('Telegram Trigger').item.json.message.from.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [-80, 512],
+      "id": "6b12e2ec-203a-430e-bec1-c2450b9992af",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "notesInFlow": true,
+      "onError": "continueRegularOutput",
+      "notes": "Obsługa wybudzania Rendera"
+    },
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [-576, 1072],
+      "id": "fac0c79b-716a-474f-9990-c6438f095fdc",
+      "name": "Telegram Trigger",
+      "webhookId": "e3600685-c3e0-4bc5-90fe-3665e5a70316",
+      "credentials": {
+        "telegramApi": {
+          "id": "tkkq7OIxWDpyVC1h",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.answer }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [288, 128],
+      "id": "5b524d88-264d-4dc4-88ad-d6ef618cefbd",
+      "name": "Send a text message",
+      "webhookId": "bb07e091-3e1a-42f3-91f5-b2f5b5018f4c",
+      "credentials": {
+        "telegramApi": {
+          "id": "tkkq7OIxWDpyVC1h",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendChatAction",
+        "chatId": "={{ $json.message.chat.id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [-288, 256],
+      "id": "832f2c06-fd96-4856-867c-f15dba992f6d",
+      "name": "Send a chat action",
+      "webhookId": "f324b64b-d0c2-452f-a5b1-426b058520d4",
+      "executeOnce": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "tkkq7OIxWDpyVC1h",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d65d8629-3e7f-469c-9376-f33bf4688087",
+              "leftValue": "={{ $json.answer }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [144, 368],
+      "id": "f59af4b1-58b5-4596-b54f-e73978f60392",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "Przepraszam, serwer potrzebuje chwili na rozruch. Spróbuj zadać to pytanie jeszcze raz za około minutę! 🤖☕",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [352, 464],
+      "id": "8790bd9c-30bc-4946-bdab-1f9c8d30accc",
+      "name": "Telegram (Server Error)",
+      "webhookId": "05da1350-5459-43c2-9476-270ce2e2156a",
+      "credentials": {
+        "telegramApi": {
+          "id": "tkkq7OIxWDpyVC1h",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://rag-labor-laws-backend.onrender.com/sessions/telegram-{{ $('Telegram Trigger').item.json.message.from.id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [-256, 976],
+      "id": "1ed102c9-0c4f-48b4-8fc8-cbfb1f54ec2c",
+      "name": "HTTP Request DELETE",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Baza danych jest czysta! 🧹 Możemy zaczynać od nowa. O co chcesz zapytać?",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [256, 976],
+      "id": "caaebd0b-e026-46ad-b5c5-3d1ab88d96c0",
+      "name": "Send a text message del confirm",
+      "webhookId": "a4357d40-3742-42c0-8e16-acf664367cb9",
+      "credentials": {
+        "telegramApi": {
+          "id": "tkkq7OIxWDpyVC1h",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ec5f7dff-04fa-4710-aaa1-1613bc7c72da",
+              "leftValue": "={{ $json.message }}",
+              "rightValue": "200, 404, 204",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "46ca117c-cb3d-4d34-ae8d-d0ceb72665e3",
+              "leftValue": "={{ $json.detail }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "1c04915f-35eb-4fa7-886d-2226a3846691",
+              "leftValue": "={{ $json.error.status }}",
+              "rightValue": 404,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [-48, 976],
+      "id": "fd74e41d-51a2-4173-8139-afcaa5defd6b",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "be514957-016b-4bd8-a88b-3c33e3d33265",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "/reset",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [-448, 848],
+      "id": "bae499ca-071f-4742-b16f-ad8821bbd31d",
+      "name": "If RESET"
+    },
+    {
+      "parameters": {
+        "operation": "sendChatAction",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "id": "f196d7f9-d0fd-4ff1-8e3b-c11555db14cb",
+      "name": "Send a chat action2",
+      "webhookId": "f324b64b-d0c2-452f-a5b1-426b058520d4",
+      "executeOnce": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "tkkq7OIxWDpyVC1h",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 4
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [-160, 112],
+      "id": "70b50733-8276-483f-b0ab-dbf3b14023fc",
+      "name": "Wait 4s",
+      "webhookId": "ba5b8f18-7bb5-4362-8d9d-af534be7d67c"
+    }
+  ],
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If RESET",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a chat action": {
+      "main": [
+        [
+          {
+            "node": "Wait 4s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram (Server Error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request DELETE": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Send a text message del confirm",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram (Server Error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If RESET": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request DELETE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a chat action",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 4s": {
+      "main": [
+        [
+          {
+            "node": "Send a chat action2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5e77112a4584294856d2a2ea458f8b82ffd9a6a2eeb1b7ae701c0579b4f1de8d"
+  }
+}
