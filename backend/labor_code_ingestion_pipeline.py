@@ -69,14 +69,14 @@ def get_latest_labor_code_automated():
 
                         if not should_update(eli_id, change_date):
                             print("Posiadasz już najnowszą dostępną wersję tekstu.")
-                            return None, None
+                            return None, None, None
 
                         address = det_data.get('address') # wyciąga address z detali
                         if not address:
                             print(f"Pomijanie {eli_id}: Brak pola 'address' w szczegółach aktu.")
                             continue
                         file_name = None
-                        # szuka pliku typu "U" (Ujednolicony) 
+                        # szuka pliku typu "U" (Ujednolicony)
                         for text_obj in det_data.get('texts', []):
                             if text_obj.get('type') == 'U':
                                 file_name = text_obj.get('fileName')
