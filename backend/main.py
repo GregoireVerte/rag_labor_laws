@@ -5,6 +5,10 @@ from pydantic import BaseModel
 import os
 import requests
 
+### plus importy skryptów do aktualizacji bazy wiedzy
+from labor_code_ingestion_pipeline import get_latest_labor_code_automated, download_specific_unified_text, save_metadata
+from ingest_to_cloud import run_ingestion
+
 from rag_engine import LaborLawRAG
 from database import engine, get_db
 from models import Base, Log, Session as ChatSession
@@ -80,6 +84,54 @@ async def delete_session(session_id: str, db: Session = Depends(get_db)):
     db.delete(db_session)
     db.commit()
     return {"message": "Sesja i powiązane logi zostały usunięte"}
+
+
+# ENDPOINT DO AKTUALIZACJI BAZY WIEDZY ### ten endpoint będzie wywoływany przez n8n aby sprawdzić i pobrać nowe prawo
+@app.post("/api/v1/admin/update-knowledge")
+async def update_legal_knowledge(request: Request):
+    # 1. Proste zabezpieczenie (API Key ze zmiennych środowiskowych)
+    ## w n8n trzeba dodać nagłówek X-Admin-Key
+    admin_key = request.headers.get("X-Admin-Key")
+    ### sprawdza klucz z .env lub używa placeholder'a do testów
+    if admin_key != os.environ.get("ADMIN_API_KEY", "super-tajne-haslo-testowe"):
+        raise HTTPException(status_code=403, detail="Brak uprawnień administratora")
+
+    try:
+        print("--- ROZPOCZĘTO SPRAWDZANIE AKTUALIZACJI PRAWA ---")
+        
+        # 2. Uruchomienie Pipeline: Sprawdzenie czy jest nowa wersja
+        url, eli, c_date = get_latest_labor_code_automated()
+        
+        if not url:
+            return {"status": "skipped", "message": "Posiadasz już najnowszą wersję lub błąd ISAP"}
+
+        # 3. Pobranie pliku PDF
+        success_download = download_specific_unified_text(target_eli=eli, pdf_url=url)
+        
+        if success_download:
+            # 4. PRZETWARZANIE DO QDRANT
+            print("--- URUCHAMIANIE INGESTION DO QDRANT CLOUD ---")
+            run_ingestion() ### wywołuje skrypt ingest_to_cloud.py
+            
+            # zapisuje metadane dopiero gdy proces (pobranie + Qdrant) się uda
+            save_metadata(eli, c_date)
+            
+            # 5. Odświeżenie silnika RAG (żeby widział nowe dane bez restartu serwera)
+            global rag_engine
+            rag_engine = LaborLawRAG()
+            
+            return {
+                "status": "success",
+                "message": f"Zaktualizowano bazę wiedzy do wersji: {eli}",
+                "details": "Pobrano PDF i zaktualizowano kolekcję w Qdrant Cloud.",
+                "updated_at": c_date
+            }
+        
+        return {"status": "error", "message": "Błąd podczas pobierania PDF"}
+
+    except Exception as e:
+        print(f"BŁĄD PODCZAS AKTUALIZACJI: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ENDPOINT Z LOGOWANIEM
