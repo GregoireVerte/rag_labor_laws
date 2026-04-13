@@ -7,3 +7,6 @@ uvicorn==0.34.3
 sqlalchemy==2.0.41
 psycopg2-binary==2.9.11
 groq==0.36.0
+langchain-community==0.3.15
+pypdf==5.2.0
+fastembed==0.5.1
