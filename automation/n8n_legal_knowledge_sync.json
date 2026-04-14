@@ -1,0 +1,156 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [3],
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [-912, 672],
+      "id": "f98b1cfe-a64c-4abf-82a8-26f58f89613f",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://rag-labor-laws-backend.onrender.com/api/v1/admin/update-knowledge",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "=X-Admin-Key",
+              "value": "=REPLACE_WITH_YOUR_ADMIN_API_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [-160, -176],
+      "id": "5f349694-d165-4ddb-b17f-afcc61ff8b90",
+      "name": "HTTP Request UPDATE RAG LAWS DATABASE"
+    },
+    {
+      "parameters": {
+        "url": "=https://rag-labor-laws-backend.onrender.com/health",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [-768, 512],
+      "id": "3581f5ee-6ad0-466a-b99c-ed7a811257cc",
+      "name": "HTTP Request WakeUp GET",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://rag-labor-laws-backend.onrender.com/health",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [-480, 208],
+      "id": "64393610-80dd-4603-984a-2236d9f3dc65",
+      "name": "HTTP Request WakeUp GET second one",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [-624, 368],
+      "id": "e08db86b-89d4-4c5a-a436-e2ae70f3ddc1",
+      "name": "Wait 30s",
+      "webhookId": "38ea2719-5814-4c37-9b11-87bfcb3584a4"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [-320, 48],
+      "id": "a7f68848-71dc-4b83-bca4-90ead027bad1",
+      "name": "Wait 30s second one",
+      "webhookId": "38ea2719-5814-4c37-9b11-87bfcb3584a4"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request WakeUp GET",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request WakeUp GET": {
+      "main": [
+        [
+          {
+            "node": "Wait 30s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request WakeUp GET second one": {
+      "main": [
+        [
+          {
+            "node": "Wait 30s second one",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 30s": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request WakeUp GET second one",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 30s second one": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request UPDATE RAG LAWS DATABASE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "5e77112a4584294856d2a2ea458f8b82ffd9a6a2eeb1b7ae701c0579b4f1de8d"
+  }
+}
