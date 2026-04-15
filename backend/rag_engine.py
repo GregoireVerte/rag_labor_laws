@@ -1,9 +1,8 @@
 import os
 from dotenv import load_dotenv
-import requests
-import time
 from groq import Groq
-from qdrant_client import QdrantClient, models
+from qdrant_client import QdrantClient
+from utils import get_embeddings, query_hf_api
 
 
 load_dotenv()
@@ -19,33 +18,15 @@ class LaborLawRAG:
         self.groq_api_key = os.getenv("GROQ_API_KEY")
         self.groq = Groq(api_key=self.groq_api_key)
 
-        ## Hugging face
-        self.hf_token = os.getenv("HF_API_KEY")
-        ### URL-e do modeli na Hugging Face
-        self.embed_url = "https://router.huggingface.co/hf-inference/models/intfloat/multilingual-e5-large/pipeline/feature-extraction"
+        ### URL do modeli na Hugging Face
         self.rerank_url = "https://router.huggingface.co/hf-inference/models/BAAI/bge-reranker-v2-m3"
 
-    def query_hf(self, url, payload):
-        headers = {"Authorization": f"Bearer {self.hf_token}"}
-        response = requests.post(url, headers=headers, json=payload)
-
-        ### jeśli model się ładuje (503) czeka i ponawia
-        if response.status_code == 503:
-            wait_time = response.json().get("estimated_time", 20)
-            print(f"Model się ładuje, czekam {wait_time}s...")
-            time.sleep(wait_time)
-            return self.query_hf(url, payload)
-
-        if response.status_code != 200:
-            raise Exception(f"Błąd Hugging Face ({response.status_code}): {response.text}")
-
-        return response.json()
-
     def get_context(self, query, limit=50):
-        # 1. Generowanie wektora przez HF API (Dense)
-        ### Model E5 wymaga przedrostka "query: " dla pytań
-        hf_resp = self.query_hf(self.embed_url, {"inputs": f"query: {query}"})
+        # 1. Generowanie wektora przez utils - HF API (Dense)
+        #### Model E5 wymaga przedrostka 'query: ' lub 'passage: ' dla pytań
+        hf_resp = get_embeddings(query, is_query=True)
 
+        ### HF API dla feature-extraction zwraca zazwyczaj [[wektor]]
         ### HF często zwraca listę list [[...]] -> wyciąganie pierwszego wektora
         if isinstance(hf_resp, list) and isinstance(hf_resp[0], list):
             dense_vec = hf_resp[0]
@@ -73,7 +54,8 @@ class LaborLawRAG:
                     for res in results
                 ]
             }
-            rerank_resp = self.query_hf(self.rerank_url, payload)
+            ## użycie wspólnej funkcji z utils
+            rerank_resp = query_hf_api(self.rerank_url, payload)
 
             ## HF zwraca [{'label': 'LABEL_0', 'score': 0.99}, ...]
             ### sortowanie wyników Qdrant na podstawie wyników z HF
