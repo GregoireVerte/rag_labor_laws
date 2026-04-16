@@ -1,12 +1,14 @@
 import os
 import re
 import uuid
+import time
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from qdrant_client.http.models import PointStruct
 from langchain_community.document_loaders import PyPDFLoader
-from fastembed import TextEmbedding, SparseTextEmbedding
+
+from utils import get_embeddings
 
 # 1. Ładowanie konfiguracji
 load_dotenv()
@@ -17,7 +19,7 @@ COLLECTION_NAME = "labor_code_pl"
 # 2. Inicjalizacja Klienta (Chmura)
 client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
 
-def run_ingestion():
+def run_ingestion(status_date="2026-02-03"):
     print(f"Rozpoczynam migrację danych do Qdrant Cloud: {QDRANT_URL}")
 
     # --- KROK 1: Przygotowanie Kolekcji ---
@@ -28,10 +30,7 @@ def run_ingestion():
         vectors_config=models.VectorParams(
             size=1024, # Dla intfloat/multilingual-e5-large
             distance=models.Distance.COSINE
-        ),
-        sparse_vectors_config={
-            "text-sparse": models.SparseVectorParams()
-        }
+        )
     )
 
     # --- KROK 2: Wczytywanie i przetwarzanie PDF ---
@@ -55,13 +54,21 @@ def run_ingestion():
     articles = [c.strip() for c in re.split(pattern, full_text) if c.strip()]
     print(f"Przygotowano {len(articles)} artykułów do zakodowania.")
 
-    # --- KROK 3: Generowanie Embeddingów ---
-    print("Generowanie wektorów (Dense & Sparse)...")
-    dense_model = TextEmbedding(model_name="intfloat/multilingual-e5-large")
-    sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
+    # --- KROK 3: Generowanie Embeddingów (Paczki) ---
+    print("Generowanie wektorów przez HF API (Dense)...")
+    dense_embeddings = []
+    batch_size = 20 ### bezpieczna wielkość paczki dla HF API
 
-    dense_embeddings = list(dense_model.embed(articles))
-    sparse_embeddings = list(sparse_model.embed(articles))
+    for i in range(0, len(articles), batch_size):
+        batch = articles[i:i + batch_size]
+        print(f"Przetwarzanie paczki {i//batch_size + 1}...")
+
+        ### Wywołanie funkcji z utils (is_query=False bo to dokumenty)
+        batch_embeddings = get_embeddings(batch, is_query=False)
+        dense_embeddings.extend(batch_embeddings)
+
+        ### mała przerwa aby nie spamować HF API zbyt szybko
+        time.sleep(0.5)
 
     # --- KROK 4: Budowanie punktów i wysyłka ---
     points = []
@@ -73,16 +80,13 @@ def run_ingestion():
         points.append(
             PointStruct(
                 id=str(uuid.uuid4()),
-                vector={
-                    "": dense_embeddings[i].tolist(),
-                    "text-sparse": sparse_embeddings[i].as_object()
-                },
+                vector=dense_embeddings[i], ### teraz to po prostu lista (wektor)
                 payload={
                     "content": content,
                     "metadata": {
                         "art_id": art_id,
                         "source": "Kodeks Pracy",
-                        "status_date": "2026-02-03"
+                        "status_date": status_date
                     }
                 }
             )

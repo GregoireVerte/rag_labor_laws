@@ -111,7 +111,8 @@ async def update_legal_knowledge(request: Request):
         if success_download:
             # 4. PRZETWARZANIE DO QDRANT
             print("--- URUCHAMIANIE INGESTION DO QDRANT CLOUD ---")
-            run_ingestion() ### wywołuje skrypt ingest_to_cloud.py
+            run_ingestion(status_date=c_date) ### wywołuje skrypt ingest_to_cloud.py
+            #### przekazuje zmienną c_date, którą funkcja get_latest_labor_code_automated() wyciągnęła wcześniej z ISAP
             
             # zapisuje metadane dopiero gdy proces (pobranie + Qdrant) się uda
             save_metadata(eli, c_date)
