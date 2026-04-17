@@ -6,8 +6,8 @@
           "interval": [
             {
               "field": "weeks",
-              "triggerAtDay": [3],
-              "triggerAtHour": 6
+              "triggerAtDay": [6],
+              "triggerAtHour": 2
             }
           ]
         }
@@ -31,7 +31,9 @@
             }
           ]
         },
-        "options": {}
+        "options": {
+          "timeout": 1200000
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
