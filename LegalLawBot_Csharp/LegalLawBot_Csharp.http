@@ -1,0 +1,6 @@
+@LegalLawBot_Csharp_HostAddress = http://localhost:5266
+
+GET {{LegalLawBot_Csharp_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
