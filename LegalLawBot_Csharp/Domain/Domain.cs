@@ -15,11 +15,18 @@ namespace LegalLawBot_Csharp.Domain
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException("Identyfikator artykułu nie może być pusty.");
 
-            // Regex: ^Art\. oznacza początek od "Art.", \s+ to spacja, \d+ to cyfry, [a-z]? to opcjonalna mała litera
-            if (!Regex.IsMatch(value.Trim(), @"^Art\.\s+\d+[a-z]?$", RegexOptions.IgnoreCase))
-                throw new ArgumentException("Niepoprawny format artykułu. Oczekiwano np. 'Art. 100' lub 'Art. 100a'.");
+            string trimmedValue = value.Trim();
 
-            return new ArticleId(value.Trim());
+            // 1. Obsługa wyjątku dla początku ustawy (Wstęp)
+            if (trimmedValue.Equals("Wstęp", StringComparison.OrdinalIgnoreCase))
+                return new ArticleId("Wstęp");
+
+            // 2. Walidacja standardowego formatu "Art. X"
+            // Regex: ^Art\. oznacza początek od "Art.", \s+ to spacja, \d+ to cyfry, [a-z] to opcjonalna mała litera
+            if (!Regex.IsMatch(trimmedValue, @"^Art\.\s+\d+[a-z]*$", RegexOptions.IgnoreCase))
+                throw new ArgumentException("Niepoprawny format artykułu. Oczekiwano np. 'Art. 100', 'Art. 100a' lub 'Wstęp'.");
+
+            return new ArticleId(trimmedValue);
         }
     }
 
