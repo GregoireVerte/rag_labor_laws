@@ -50,4 +50,88 @@ namespace LegalLawBot_Csharp.Domain
             return new UserQuery(text.Trim());
         }
     }
+    // Rekord: EmailAddress // Zamiast stringa – pełna walidacja Regexem + niemutowalność + „invalid state unrepresentable”
+    public record EmailAddress
+    {
+        public string Value { get; }
+
+        private EmailAddress(string value) => Value = value;
+
+        public static EmailAddress Create(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                throw new ArgumentException("Adres e-mail nie może być pusty.");
+
+            string trimmedValue = value.Trim();
+
+            // Walidacja e-mail (regex zgodny z powszechnymi RFC)
+            if (!Regex.IsMatch(trimmedValue, @"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$", RegexOptions.IgnoreCase))
+                throw new ArgumentException("Niepoprawny format adresu e-mail. Oczekiwano np. 'jan.kowalski@example.com'.");
+
+            return new EmailAddress(trimmedValue);
+        }
+    }
+    // Rekord: UserId – opakowanie Guid (type-safe, niemutowalny)
+    public record UserId
+    {
+        public Guid Value { get; }
+
+        private UserId(Guid value) => Value = value;
+
+        public static UserId Create(Guid value)
+        {
+            if (value == Guid.Empty)
+                throw new ArgumentException("Identyfikator użytkownika nie może być pusty (Guid.Empty).");
+
+            return new UserId(value);
+        }
+
+        // Fabryka do tworzenia nowego użytkownika
+        public static UserId New() => Create(Guid.NewGuid());
+    }
+    // Wspierający rekord: UserStatus – status jako value object (unikanie stringa i enuma)
+    public record UserStatus
+    {
+        public string Value { get; }
+
+        private UserStatus(string value) => Value = value;
+
+        public static UserStatus Aktywny { get; } = new UserStatus("Aktywny");
+        public static UserStatus Zablokowany { get; } = new UserStatus("Zablokowany"); // Przygotowanie pod przyszłą logikę
+    }
+    // Klasa domenowa: User (entity)
+    // – zaczyna zawsze jako Aktywny
+    // – używa wyłącznie bogatych typów domenowych
+    // – prywatny konstruktor + fabryka = invalid states unrepresentable
+    public class User
+    {
+        public UserId Id { get; private set; }
+        public EmailAddress Email { get; private set; }
+        public UserStatus Status { get; private set; }
+
+        // Prywatny konstruktor – tylko fabryka może tworzyć obiekt
+        private User(UserId id, EmailAddress email)
+        {
+            Id = id;
+            Email = email;
+            Status = UserStatus.Aktywny; // zawsze startuje jako Aktywny
+        }
+
+        // Jedyny publiczny sposób tworzenia poprawnego użytkownika
+        public static User Create(UserId id, EmailAddress email)
+        {
+            // dodatkowe walidacje domenowe można dodać tutaj (np. biznesowe reguły)
+            // Nawet jeśli typy są bezpieczne, sprawdza czy same obiekty nie są nullem
+            var userId = id ?? throw new ArgumentNullException(nameof(id));
+            var userEmail = email ?? throw new ArgumentNullException(nameof(email));
+
+            return new User(userId, userEmail);
+        }
+
+        // Przykład metody domenowej (można rozbudować później)
+        public void ChangeEmail(EmailAddress newEmail)
+        {
+            Email = newEmail;
+        }
+    }
 }
