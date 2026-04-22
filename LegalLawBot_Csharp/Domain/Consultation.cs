@@ -41,14 +41,24 @@ public record AnsweredConsultation : ConsultationState
 public class Consultation
 {
     public Guid Id { get; } = Guid.NewGuid();
+
+    // powiązanie z użytkownikiem (Type-Safe)
+    public UserId CreatedBy { get; }
+
+    // znacznik czasu
+    public DateTime CreatedAt { get; } = DateTime.UtcNow;
+
     public ConsultationState State { get; private set; }
 
-    private Consultation(UserQuery query)
+    private Consultation(UserQuery query, UserId userId)
     {
+        CreatedBy = userId ?? throw new ArgumentNullException(nameof(userId));
         State = new InitializedConsultation(query);
     }
 
-    public static Consultation Start(UserQuery query) => new(query);
+    // fabryka - teraz nie da się zacząć konsultacji bez użytkownika
+    public static Consultation Start(UserQuery query, UserId userId)
+        => new Consultation(query, userId);
 
     public void AddResponse(string response, IEnumerable<ArticleId> sources)
     {
