@@ -99,6 +99,16 @@ namespace LegalLawBot_Csharp.Domain
         public static UserStatus Aktywny { get; } = new UserStatus("Aktywny");
         public static UserStatus Zablokowany { get; } = new UserStatus("Zablokowany"); // Przygotowanie pod przyszłą logikę
     }
+    // Record: UserRole – zapobiega wpisywaniu dowolnych stringów (Type Safety)
+    public record UserRole
+    {
+        public string Name { get; }
+        private UserRole(string name) => Name = name;
+
+        // Definicja tylko dozwolonych ról
+        public static UserRole Standard { get; } = new UserRole("Standard");
+        public static UserRole Administrator { get; } = new UserRole("Administrator");
+    }
     // Klasa domenowa: User (entity)
     // – zaczyna zawsze jako Aktywny
     // – używa wyłącznie bogatych typów domenowych
@@ -108,6 +118,7 @@ namespace LegalLawBot_Csharp.Domain
         public UserId Id { get; private set; }
         public EmailAddress Email { get; private set; }
         public UserStatus Status { get; private set; }
+        public UserRole Role { get; private set; }
 
         // Prywatny konstruktor – tylko fabryka może tworzyć obiekt
         private User(UserId id, EmailAddress email)
@@ -115,6 +126,7 @@ namespace LegalLawBot_Csharp.Domain
             Id = id;
             Email = email;
             Status = UserStatus.Aktywny; // zawsze startuje jako Aktywny
+            Role = UserRole.Standard; // domyślnie każdy jest zwykłym użytkownikiem
         }
 
         // Jedyny publiczny sposób tworzenia poprawnego użytkownika
@@ -126,6 +138,12 @@ namespace LegalLawBot_Csharp.Domain
             var userEmail = email ?? throw new ArgumentNullException(nameof(email));
 
             return new User(userId, userEmail);
+        }
+
+        // Metoda dostępna tylko dla logiki biznesowej (np. nadanie uprawnień przez system)
+        public void PromoteToAdmin()
+        {
+            Role = UserRole.Administrator;
         }
 
         // Przykład metody domenowej (można rozbudować później)
