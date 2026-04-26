@@ -223,6 +223,24 @@ async def tg_proxy(path: str, request: Request):
     )
 
 
+# ENDPOINT DLA BACKENDU C# (BEZ LOGOWANIA DO BAZY)
+# Ten endpoint jest "bezstanowy" - C# przesyła pytanie a Python tylko odpowiada
+@app.post("/api/v1/legal-brain/ask")
+async def ask_legal_brain(query: Query):
+    try:
+        ## wywołuje silnik RAG bez pobierania historii z bazy Pythona
+        ## jeśli C# będzie chciał uwzględnić historię prześle ją w pytaniu
+        result = rag_engine.ask(query.question, chat_history=[]) 
+        
+        return {
+            "answer": result["answer"],
+            "sources": result["sources"]
+        }
+    except Exception as e:
+        print(f"BŁĄD LEGAL-BRAIN: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "database": "connected"}
