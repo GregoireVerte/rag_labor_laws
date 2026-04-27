@@ -1,4 +1,22 @@
+using LegalLawBot_Csharp.Application;
+using LegalLawBot_Csharp.Domain;
+using LegalLawBot_Csharp.Infrastructure.ExternalServices;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// 1. Rejestracja ConsultationService (Warstwa Aplikacji)
+builder.Services.AddScoped<ConsultationService>();
+
+// 2. Konfiguracja połączenia z Pythonem na Renderze
+builder.Services.AddHttpClient<ILegalBrainService, LegalBrainServiceClient>(client =>
+{
+    // ADRES Z RENDERA
+    client.BaseAddress = new Uri("https://rag-labor-laws-backend.onrender.com/");
+});
+
+// 3. Rejestracja Repozytorium (na razie "fake" dopóki nie podepniemy bazy)
+// To pozwoli uruchomić projekt bez błędów kompilacji
+// builder.Services.AddScoped<IConsultationRepository, FakeRepository>();
 
 // Add services to the container.
 
