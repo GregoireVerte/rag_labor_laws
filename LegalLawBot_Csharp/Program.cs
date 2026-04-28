@@ -1,6 +1,7 @@
 using LegalLawBot_Csharp.Application;
 using LegalLawBot_Csharp.Domain;
 using LegalLawBot_Csharp.Infrastructure.ExternalServices;
+using LegalLawBot_Csharp.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +17,7 @@ builder.Services.AddHttpClient<ILegalBrainService, LegalBrainServiceClient>(clie
 
 // 3. Rejestracja Repozytorium (na razie "fake" dopóki nie podepniemy bazy)
 // To pozwoli uruchomić projekt bez błędów kompilacji
-// builder.Services.AddScoped<IConsultationRepository, FakeRepository>();
+builder.Services.AddScoped<IConsultationRepository, FakeConsultationRepository>();
 
 // Add services to the container.
 
