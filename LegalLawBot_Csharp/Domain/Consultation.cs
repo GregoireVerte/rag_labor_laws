@@ -50,6 +50,21 @@ public class Consultation
 
     public ConsultationState State { get; private set; }
 
+    // --- POMOCNICZE WŁAŚCIWOŚCI DLA BAZY DATYCH (I KONTROLERA) ---
+    // Pobiera treść pytania niezależnie od tego, w jakim stanie jest konsultacja
+    public string Question => State switch
+    {
+        InitializedConsultation initial => initial.Query.Text,
+        AnsweredConsultation answered => answered.Query.Text,
+        _ => string.Empty
+    };
+
+    // Pobiera odpowiedź tylko jeśli stan to AnsweredConsultation w przeciwnym razie zwraca null
+    public string? Response => (State as AnsweredConsultation)?.Response;
+
+    // Pobiera źródła tylko jeśli stan to AnsweredConsultation w przeciwnym razie pustą listę
+    public IReadOnlyList<ArticleId> Sources => (State as AnsweredConsultation)?.Sources ?? new List<ArticleId>();
+
     private Consultation(UserQuery query, UserId userId)
     {
         CreatedBy = userId ?? throw new ArgumentNullException(nameof(userId));
