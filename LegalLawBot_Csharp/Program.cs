@@ -1,7 +1,9 @@
 using LegalLawBot_Csharp.Application;
 using LegalLawBot_Csharp.Domain;
 using LegalLawBot_Csharp.Infrastructure.ExternalServices;
+using LegalLawBot_Csharp.Infrastructure.Persistence;
 using LegalLawBot_Csharp.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +26,14 @@ builder.Services.AddScoped<IConsultationRepository, FakeConsultationRepository>(
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+// Pobiera adres bazy z pliku appsettings.json
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Rejestruje DbContext z użyciem PostgreSQL
+builder.Services.AddDbContext<LegalLawBotDbContext>(options =>
+    options.UseNpgsql(connectionString));
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
