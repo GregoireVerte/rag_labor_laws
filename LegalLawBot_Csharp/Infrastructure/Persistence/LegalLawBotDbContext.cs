@@ -23,6 +23,8 @@ public class LegalLawBotDbContext : DbContext
             // Id konsultacji to klucz główny
             entity.HasKey(c => c.Id);
 
+            entity.Ignore(c => c.State);
+
             // konfiguruje że tekst odpowiedzi może być bardzo długi
             entity.Property(c => c.Response).IsRequired();
 

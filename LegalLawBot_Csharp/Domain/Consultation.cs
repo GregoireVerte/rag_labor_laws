@@ -40,35 +40,36 @@ public record AnsweredConsultation : ConsultationState
 
 public class Consultation
 {
-    public Guid Id { get; } = Guid.NewGuid();
+    public Guid Id { get; private set; } = Guid.NewGuid();
 
     // powiązanie z użytkownikiem (Type-Safe)
-    public UserId CreatedBy { get; }
+    public UserId CreatedBy { get; private set; }
 
     // znacznik czasu
-    public DateTime CreatedAt { get; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
 
     public ConsultationState State { get; private set; }
 
-    // --- POMOCNICZE WŁAŚCIWOŚCI DLA BAZY DATYCH (I KONTROLERA) ---
-    // Pobiera treść pytania niezależnie od tego, w jakim stanie jest konsultacja
-    public string Question => State switch
+    // --- POMOCNICZE WŁAŚCIWOŚCI DLA BAZY DATYCH (I KONTROLERA ; Z PRYWATNYM SETTEREM) ---
+    public string Question { get; private set; } = string.Empty;
+
+    public string? Response { get; private set; }
+
+    public IReadOnlyList<ArticleId> Sources { get; private set; } = new List<ArticleId>();
+
+    // Pusty konstruktor - ucisza ostrzeżenia techniczne EF Core
+    private Consultation()
     {
-        InitializedConsultation initial => initial.Query.Text,
-        AnsweredConsultation answered => answered.Query.Text,
-        _ => string.Empty
-    };
-
-    // Pobiera odpowiedź tylko jeśli stan to AnsweredConsultation w przeciwnym razie zwraca null
-    public string? Response => (State as AnsweredConsultation)?.Response;
-
-    // Pobiera źródła tylko jeśli stan to AnsweredConsultation w przeciwnym razie pustą listę
-    public IReadOnlyList<ArticleId> Sources => (State as AnsweredConsultation)?.Sources ?? new List<ArticleId>();
+        State = null!;
+        CreatedBy = null!;
+        Question = null!;
+    }
 
     private Consultation(UserQuery query, UserId userId)
     {
         CreatedBy = userId ?? throw new ArgumentNullException(nameof(userId));
         State = new InitializedConsultation(query);
+        Question = query.Text;
     }
 
     // fabryka - teraz nie da się zacząć konsultacji bez użytkownika
@@ -79,7 +80,14 @@ public class Consultation
     {
         if (State is InitializedConsultation initial)
         {
-            State = new AnsweredConsultation(initial.Query, response, sources);
+            var sourceList = sources.ToList();
+
+            // 1. Aktualizuje stan logiczny
+            State = new AnsweredConsultation(initial.Query, response, sourceList);
+
+            // 2. Przypisuje wartości do pól które widzi baza danych
+            Response = response;
+            Sources = sourceList.AsReadOnly();
         }
         else
         {
