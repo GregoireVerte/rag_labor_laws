@@ -25,6 +25,12 @@ public class LegalLawBotDbContext : DbContext
 
             entity.Ignore(c => c.State);
 
+            // DLA USERID
+            entity.Property(c => c.CreatedBy)
+                .HasConversion(
+                    v => v.Value,            // Z UserId na Guid (do bazy)
+                    v => UserId.Create(v));  // Z Guid na UserId (z bazy przez fabrykę)
+
             // konfiguruje że tekst odpowiedzi może być bardzo długi
             entity.Property(c => c.Response).IsRequired();
 
