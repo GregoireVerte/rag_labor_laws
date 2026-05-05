@@ -2,7 +2,7 @@ using LegalLawBot_Csharp.Application;
 using LegalLawBot_Csharp.Domain;
 using LegalLawBot_Csharp.Infrastructure.ExternalServices;
 using LegalLawBot_Csharp.Infrastructure.Persistence;
-using LegalLawBot_Csharp.Infrastructure.Repositories;
+// using LegalLawBot_Csharp.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -18,9 +18,9 @@ builder.Services.AddHttpClient<ILegalBrainService, LegalBrainServiceClient>(clie
     client.BaseAddress = new Uri("https://rag-labor-laws-backend.onrender.com/");
 });
 
-// 3. Rejestracja Repozytorium (na razie "fake" dopóki nie podepniemy bazy)
-// To pozwoli uruchomić projekt bez błędów kompilacji
-builder.Services.AddScoped<IConsultationRepository, FakeConsultationRepository>();
+// 3. Rejestracja Repozytorium (Prawdziwe - EF Core)
+// Teraz aplikacja będzie zapisywać dane w Supabase zamiast w pamięci RAM
+builder.Services.AddScoped<IConsultationRepository, EfConsultationRepository>();
 
 // Add services to the container.
 
