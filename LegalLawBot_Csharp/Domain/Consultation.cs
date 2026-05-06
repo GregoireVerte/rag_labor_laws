@@ -50,48 +50,66 @@ public class Consultation
 
     public ConsultationState State { get; private set; }
 
-    // --- POMOCNICZE WŁAŚCIWOŚCI DLA BAZY DATYCH (I KONTROLERA ; Z PRYWATNYM SETTEREM) ---
-    public string Question { get; private set; } = string.Empty;
+    // LISTA WIADOMOŚCI (Rdzeń sesji ; Jedno źródło prawdy o sesji)
+    private readonly List<Message> _messages = new();
+    public IReadOnlyCollection<Message> Messages => _messages.AsReadOnly();
 
-    public string? Response { get; private set; }
+    // Pomocnicze dla kontrolera (opcjonalne - zwraca ostatnie pytanie/odpowiedź)
+    public string LastQuestion => _messages.LastOrDefault(m => m.Role == MessageRole.User)?.Content ?? string.Empty;
+    public string? LastResponse => _messages.LastOrDefault(m => m.Role == MessageRole.Assistant)?.Content;
 
-    public IReadOnlyList<ArticleId> Sources { get; private set; } = new List<ArticleId>();
+    // Zwraca źródła z ostatniej wiadomości asystenta
+    public IReadOnlyList<ArticleId> LastSources =>
+        _messages.LastOrDefault(m => m.Role == MessageRole.Assistant)?.Sources ?? new List<ArticleId>();
 
     // Pusty konstruktor - ucisza ostrzeżenia techniczne EF Core
     private Consultation()
     {
-        State = null!;
         CreatedBy = null!;
-        Question = null!;
+        State = null!;
     }
 
     private Consultation(UserQuery query, UserId userId)
     {
         CreatedBy = userId ?? throw new ArgumentNullException(nameof(userId));
         State = new InitializedConsultation(query);
-        Question = query.Text;
+
+        // Dodaje pierwsze pytanie do historii
+        _messages.Add(new Message(MessageRole.User, query.Text));
     }
 
     // fabryka - teraz nie da się zacząć konsultacji bez użytkownika
     public static Consultation Start(UserQuery query, UserId userId)
         => new Consultation(query, userId);
 
+    // BEZPIECZNE DODAWANIE ODPOWIEDZI
     public void AddResponse(string response, IEnumerable<ArticleId> sources)
     {
-        if (State is InitializedConsultation initial)
+        if (State is not InitializedConsultation initial)
         {
-            var sourceList = sources.ToList();
-
-            // 1. Aktualizuje stan logiczny
-            State = new AnsweredConsultation(initial.Query, response, sourceList);
-
-            // 2. Przypisuje wartości do pól które widzi baza danych
-            Response = response;
-            Sources = sourceList.AsReadOnly();
+            throw new InvalidOperationException("Nie można dodać odpowiedzi, jeśli nie zadano wcześniej pytania.");
         }
-        else
+
+        // Logika biznesowa - dodaje wiadomość asystenta do listy
+        var assistantMsg = new Message(MessageRole.Assistant, response, sources);
+        _messages.Add(assistantMsg);
+
+        // Zmienia stan na Answered
+        State = new AnsweredConsultation(initial.Query, response, sources);
+    }
+
+    // BEZPIECZNE DODAWANIE KOLEJNEGO PYTANIA
+    public void AddNextQuestion(UserQuery query)
+    {
+        if (State is InitializedConsultation)
         {
-            throw new InvalidOperationException("Nie można dodać odpowiedzi do już obsłużonej konsultacji.");
+            throw new InvalidOperationException("Nie możesz zadać kolejnego pytania, dopóki nie otrzymasz odpowiedzi na poprzednie.");
         }
+
+        // Dodaje kolejne pytanie użytkownika do tej samej sesji
+        _messages.Add(new Message(MessageRole.User, query.Text));
+
+        // Resetuje stan na Initialized (czyli "czekam na odpowiedź")
+        State = new InitializedConsultation(query);
     }
 }
