@@ -6,9 +6,13 @@ namespace LegalLawBot_Csharp.Domain
     // Record zapewnia niemutowalność i porównywanie po wartościach.
     public record ArticleId
     {
-        public string Value { get; }
+        public string Value { get; init; } // init pozwala EF Core ustawić wartość
 
-        private ArticleId(string value) => Value = value;
+        // Konstruktor musi być publiczny i nazwa parametru musi odpowiadać właściwości (Value -> value)
+        public ArticleId(string value)
+        {
+            Value = value;
+        }
 
         public static ArticleId Create(string value)
         {
