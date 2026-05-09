@@ -23,8 +23,8 @@ public class ConsultationController : ControllerBase
             // 1. Tworzy tymczasowe ID użytkownika (do zastąpienia przez ID zalogowanej osoby)
             var userId = UserId.Create(Guid.NewGuid());
 
-            // 2. Przekazuje zadanie do orkiestratora -> Application Layer
-            var consultationId = await _consultationService.AskQuestionAsync(userId, request.Question);
+            // 2. Przekazuje zadanie do orkiestratora -> Application Layer ; z opcjonalnym ID sesji
+            var consultationId = await _consultationService.AskQuestionAsync(userId, request.Question, request.ConsultationId);
 
             // 3. Zwraca info o sukcesie i ID nowej konsultacji
             return Ok(new { Message = "Konsultacja zakończona sukcesem!", Id = consultationId });
@@ -42,5 +42,5 @@ public class ConsultationController : ControllerBase
     }
 }
 
-// Prosty model (DTO) do odebrania pytania z JSONa
-public record AskRequest(string Question);
+// Prosty model (DTO) do odebrania pytania z JSONa; dodany opcjonalny parametr ConsultationId //
+public record AskRequest(string Question, Guid? ConsultationId = null);
