@@ -20,15 +20,22 @@ public class EfConsultationRepository : IConsultationRepository
 
     public async Task<Consultation?> GetByIdAsync(Guid id)
     {
+        // dodane .Include(c => c.Messages) aby załadować historię sesji
         return await _context.Consultations
+            .Include(c => c.Messages)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
     public async Task UpdateAsync(Consultation consultation)
     {
-        // Informuje EF Core że ten obiekt mógł zostać zmieniony
-        _context.Consultations.Update(consultation);
-        // Zapisuje zmiany w bazie
+        // sprawdzenie czy obiekt jest już śledzony, jeśli nie jest - zostaje dołączony
+        var entry = _context.Entry(consultation);
+        if (entry.State == EntityState.Detached)
+        {
+            _context.Consultations.Attach(consultation);
+        }
+
+        // zapis zmian w bazie w całym agregacie (w tym w nowo dodanych wiadomościach)
         await _context.SaveChangesAsync();
     }
 
@@ -37,6 +44,7 @@ public class EfConsultationRepository : IConsultationRepository
         // Pobiera wszystkie konsultacje danego użytkownika
         return await _context.Consultations
             .Where(c => c.CreatedBy == userId)
+            .Include(c => c.Messages) // dołożone by widzieć historię
             .ToListAsync();
     }
 }

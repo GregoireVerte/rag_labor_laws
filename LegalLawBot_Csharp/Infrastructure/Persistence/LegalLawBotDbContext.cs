@@ -19,6 +19,12 @@ public class LegalLawBotDbContext : DbContext
         modelBuilder.Ignore<ArticleId>();
         modelBuilder.Ignore<UserId>();
 
+        // konfiguracja porównywania dla listy artykułów (Sources)
+        var articleIdListComparer = new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<IReadOnlyList<ArticleId>>(
+        (c1, c2) => c1!.SequenceEqual(c2!),
+        c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+        c => c.ToList());
+
         // konfiguracja szczegółów tabel
 
         modelBuilder.Entity<Consultation>(entity =>
@@ -34,7 +40,7 @@ public class LegalLawBotDbContext : DbContext
                     v => v.Value,            // Z UserId na Guid (do bazy)
                     v => UserId.Create(v));  // Z Guid na UserId (z bazy przez fabrykę)
 
-            // Relacja Jeden-do-Wielu (Consultation -> Messages)
+            // Relacja Jeden-do-Wielu (Consultation -> Messages) i dostęp do pola prywatnego
             // Mówi EF Core że pole prywatne _messages ma być traktowane jako kolekcja
             entity.HasMany(c => c.Messages)
                 .WithOne() // Wiadomość należy do jednej konsultacji
@@ -61,7 +67,8 @@ public class LegalLawBotDbContext : DbContext
                     v => string.Join(',', v.Select(a => a.Value)),
                     v => v.Split(',', StringSplitOptions.RemoveEmptyEntries)
                           .Select(ArticleId.Create)
-                          .ToList());
+                          .ToList())
+                .Metadata.SetValueComparer(articleIdListComparer);
         });
 
         base.OnModelCreating(modelBuilder);
