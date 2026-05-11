@@ -28,14 +28,15 @@ public class EfConsultationRepository : IConsultationRepository
 
     public async Task UpdateAsync(Consultation consultation)
     {
-        // sprawdzenie czy obiekt jest już śledzony, jeśli nie jest - zostaje dołączony
         var entry = _context.Entry(consultation);
-        if (entry.State == EntityState.Detached)
+
+        // jeśli EF Core chce aktualizować rodzica (Consultation) mówi mu że nie trzeba
+        // to zapobiegnie błędowi 500 jeśli Postgres uzna że update rodzica był zbędny
+        if (entry.State == EntityState.Modified)
         {
-            _context.Consultations.Attach(consultation);
+            entry.State = EntityState.Unchanged;
         }
 
-        // zapis zmian w bazie w całym agregacie (w tym w nowo dodanych wiadomościach)
         await _context.SaveChangesAsync();
     }
 

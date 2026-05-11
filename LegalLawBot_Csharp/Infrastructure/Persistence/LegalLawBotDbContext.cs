@@ -25,6 +25,12 @@ public class LegalLawBotDbContext : DbContext
         c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
         c => c.ToList());
 
+        // konfiguracja porównywania dla UserId
+        var userIdComparer = new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<UserId>(
+            (l, r) => l!.Value == r!.Value,
+            v => v.Value.GetHashCode(),
+            v => v);
+
         // konfiguracja szczegółów tabel
 
         modelBuilder.Entity<Consultation>(entity =>
@@ -34,11 +40,18 @@ public class LegalLawBotDbContext : DbContext
 
             entity.Ignore(c => c.State);
 
+            entity.Ignore(c => c.LastQuestion);
+            entity.Ignore(c => c.LastResponse);
+            entity.Ignore(c => c.LastSources);
+
+            entity.Property(c => c.CreatedAt).Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+
             // Konwerter dla UserId
             entity.Property(c => c.CreatedBy)
                 .HasConversion(
                     v => v.Value,            // Z UserId na Guid (do bazy)
-                    v => UserId.Create(v));  // Z Guid na UserId (z bazy przez fabrykę)
+                    v => UserId.Create(v))  // Z Guid na UserId (z bazy przez fabrykę)
+                .Metadata.SetValueComparer(userIdComparer);
 
             // Relacja Jeden-do-Wielu (Consultation -> Messages) i dostęp do pola prywatnego
             // Mówi EF Core że pole prywatne _messages ma być traktowane jako kolekcja
