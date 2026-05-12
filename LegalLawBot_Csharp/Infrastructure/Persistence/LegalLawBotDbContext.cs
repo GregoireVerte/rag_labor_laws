@@ -71,6 +71,8 @@ public class LegalLawBotDbContext : DbContext
             entity.ToTable("Messages");
             entity.HasKey(m => m.Id);
 
+            entity.Property(m => m.Id).ValueGeneratedNever();
+
             entity.Property(m => m.Role).HasConversion<string>(); // Zapisuje enum jako tekst (User/Assistant)
             entity.Property(m => m.Content).IsRequired();
 
