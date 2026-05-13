@@ -1,6 +1,7 @@
 ﻿namespace LegalLawBot_Csharp.Application;
 
 using LegalLawBot_Csharp.Domain;
+using static LegalLawBot_Csharp.Infrastructure.ExternalServices.LegalBrainServiceClient;
 
 public class ConsultationService
 {
@@ -38,9 +39,17 @@ public class ConsultationService
             consultation = Consultation.Start(query, userId);
         }
 
-        // 3. Wywołanie "Mózgu" w Pythonie przez interfejs
+        // 3. Wywołanie "Mózgu" w Pythonie przez interfejs ; przygotowanie historii rozmowy dla Pythona
         // Aplikacja nie wie, że to leci na serwer Render - ona tylko prosi o odpowiedź
-        var (answer, sources) = await _legalBrain.AskLegalQuestionAsync(query);
+        // Pobiera dotychczasowe wiadomości i mapuje na format DTO
+        var historyDto = consultation.Messages
+            .Select(m => new ChatMessageDto(
+                m.Role.ToString().ToLower(), // Zamienia "Assistant" na "assistant"
+                m.Content))
+            .ToList();
+
+        // wywołanie mózgu z pełną historią
+        var (answer, sources) = await _legalBrain.AskLegalQuestionAsync(query, historyDto);
 
         // 4. Dodanie odpowiedzi (niezależnie czy nowa, czy stara sesja)
         consultation.AddResponse(answer, sources);

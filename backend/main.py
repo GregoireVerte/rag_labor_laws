@@ -32,9 +32,15 @@ app.add_middleware(
 rag_engine = LaborLawRAG()
 
 
+class ChatMessage(BaseModel):
+    role: str ### "user" lub "assistant"
+    content: str
+
+
 class Query(BaseModel):
     question: str
-    session_id: str = None  ## pole na ID sesji
+    history: list[ChatMessage] = [] ### lista wiadomości przesyłana z C#
+    ## session_id: str = None  ## to było pole na ID sesji ## NIEAKTUALNE bo logika i baza przechodzi do C#
 
 
 # ENDPOINT z przywracaniem wiadomości dla danego session_id
@@ -230,7 +236,15 @@ async def ask_legal_brain(query: Query):
     try:
         ## wywołuje silnik RAG bez pobierania historii z bazy Pythona
         ## jeśli C# będzie chciał uwzględnić historię prześle ją w pytaniu
-        result = rag_engine.ask(query.question, chat_history=[]) 
+        ## konwertuje listę ChatMessage na listę krotek [(q, a), (q, a)...] którą rozumie funkcja rag_engine.ask
+        formatted_history = []
+        for i in range(0, len(query.history), 2):
+            if i + 1 < len(query.history):
+                ## paruje: Pytanie użytkownika i odpowiedź asystenta
+                formatted_history.append((query.history[i].content, query.history[i+1].content))
+
+        ### teraz wywołuje RAG z prawdziwą historią i działającym rewrite_query
+        result = rag_engine.ask(query.question, chat_history=formatted_history)
         
         return {
             "answer": result["answer"],

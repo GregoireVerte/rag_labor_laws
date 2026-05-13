@@ -12,10 +12,16 @@ public class LegalBrainServiceClient : ILegalBrainService
         _httpClient = httpClient;
     }
 
-    public async Task<(string Response, IEnumerable<ArticleId> Sources)> AskLegalQuestionAsync(UserQuery query)
+    public async Task<(string Response, IEnumerable<ArticleId> Sources)> AskLegalQuestionAsync(
+    UserQuery query,
+    IEnumerable<ChatMessageDto> history)
     {
-        // 1. Przygotowanie danych do wysłania (zgodnie z modelem Query w Pythonie)
-        var payload = new { question = query.Text };
+        // 1. Przygotowanie danych do wysłania
+        var payload = new
+        {
+            question = query.Text,
+            history = history // EF i HttpClient zajmą się zamianą na JSON
+        };
 
         // 2. Wysłanie zapytania do Pythona na Renderze
         // (Adres URL skonfigurowany w Program.cs)
@@ -30,6 +36,10 @@ public class LegalBrainServiceClient : ILegalBrainService
 
         return (result.Answer, sources);
     }
+
+    // Model DTO dla historii - nazwy właściwości (role, content) 
+    // muszą być identyczne jak w Pythonie (ChatMessage)
+    public record ChatMessageDto(string role, string content);
 
     // Pomocnicza klasa do odczytu JSONa z Pythona
     private record LegalBrainResponse(string Answer, List<string> Sources);
