@@ -1,5 +1,7 @@
 ﻿namespace LegalLawBot_Csharp.Domain;
 
+public record ChatMessageDto(string role, string content);
+
 public interface ILegalBrainService
 {
     // Kontrakt na zadanie pytania do RAGa w Pythonie

@@ -20,7 +20,7 @@ public class LegalBrainServiceClient : ILegalBrainService
         var payload = new
         {
             question = query.Text,
-            history = history // EF i HttpClient zajmą się zamianą na JSON
+            history = history // EF i HttpClient zajmą się zamianą na JSON // to wysyła do Pythona
         };
 
         // 2. Wysłanie zapytania do Pythona na Renderze
@@ -36,10 +36,6 @@ public class LegalBrainServiceClient : ILegalBrainService
 
         return (result.Answer, sources);
     }
-
-    // Model DTO dla historii - nazwy właściwości (role, content) 
-    // muszą być identyczne jak w Pythonie (ChatMessage)
-    public record ChatMessageDto(string role, string content);
 
     // Pomocnicza klasa do odczytu JSONa z Pythona
     private record LegalBrainResponse(string Answer, List<string> Sources);
