@@ -1,7 +1,6 @@
 ﻿namespace LegalLawBot_Csharp.Application;
 
 using LegalLawBot_Csharp.Domain;
-using static LegalLawBot_Csharp.Infrastructure.ExternalServices.LegalBrainServiceClient;
 
 public class ConsultationService
 {
@@ -67,4 +66,33 @@ public class ConsultationService
         // Zwraca Id, żeby frontend mógł później o tę konsultację zapytać
         return consultation.Id;
     }
+    // Pobiera listę wszystkich sesji dla danego użytkownika
+    public async Task<IEnumerable<ConsultationSummaryDto>> GetUserConsultationsAsync(UserId userId)
+    {
+        var consultations = await _repository.GetByUserIdAsync(userId);
+
+        return consultations.Select(c => new ConsultationSummaryDto(
+            c.Id,
+            c.CreatedAt,
+            c.Messages.FirstOrDefault()?.Content ?? "Nowa konsultacja"
+        ));
+    }
+
+    // Pobiera pełną historię jednej sesji
+    public async Task<ConsultationDetailsDto?> GetConsultationDetailsAsync(Guid id)
+    {
+        var consultation = await _repository.GetByIdAsync(id);
+        if (consultation == null) return null;
+
+        var history = consultation.Messages.Select(m => new ChatMessageDto(
+            m.Role.ToString().ToLower(),
+            m.Content
+        )).ToList();
+
+        return new ConsultationDetailsDto(consultation.Id, consultation.CreatedAt, history);
+    }
 }
+
+public record ConsultationSummaryDto(Guid Id, DateTime CreatedAt, string FirstQuestion);
+
+public record ConsultationDetailsDto(Guid Id, DateTime CreatedAt, List<ChatMessageDto> History);

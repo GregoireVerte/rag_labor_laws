@@ -20,13 +20,16 @@ public class ConsultationController : ControllerBase
     {
         try
         {
-            // 1. Tworzy tymczasowe ID użytkownika (do zastąpienia przez ID zalogowanej osoby)
-            var userId = UserId.Create(Guid.NewGuid());
+            // Tworzy tymczasowe ID użytkownika (do zastąpienia przez ID zalogowanej osoby)
+            // var userId = UserId.Create(Guid.NewGuid());
 
-            // 2. Przekazuje zadanie do orkiestratora -> Application Layer ; z opcjonalnym ID sesji
+            // Używa tego samego stałego ID co w GetAll, żeby widzieć wyniki w testach
+            var userId = UserId.Create(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+
+            // Przekazuje zadanie do orkiestratora -> Application Layer ; z opcjonalnym ID sesji
             var consultationId = await _consultationService.AskQuestionAsync(userId, request.Question, request.ConsultationId);
 
-            // 3. Zwraca info o sukcesie i ID nowej konsultacji
+            // Zwraca info o sukcesie i ID nowej konsultacji
             return Ok(new { Message = "Konsultacja zakończona sukcesem!", Id = consultationId });
         }
         catch (ArgumentException ex)
@@ -39,6 +42,24 @@ public class ConsultationController : ControllerBase
             // W razie nieprzewidzianych błędów (np. problem z połączeniem z Pythonem)
             return StatusCode(500, $"Błąd serwera: {ex.Message}");
         }
+    }
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        // Na razie używa stałego ID (później do zastąpienia Admin ID)
+        var userId = UserId.Create(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+
+        var sessions = await _consultationService.GetUserConsultationsAsync(userId);
+        return Ok(sessions);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var details = await _consultationService.GetConsultationDetailsAsync(id);
+        if (details == null) return NotFound("Nie znaleziono takiej konsultacji.");
+
+        return Ok(details);
     }
 }
 
