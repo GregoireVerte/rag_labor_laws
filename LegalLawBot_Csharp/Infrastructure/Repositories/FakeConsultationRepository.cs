@@ -1,4 +1,5 @@
 ﻿using LegalLawBot_Csharp.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace LegalLawBot_Csharp.Infrastructure.Repositories;
 
@@ -18,4 +19,10 @@ public class FakeConsultationRepository : IConsultationRepository
         => Task.FromResult(Enumerable.Empty<Consultation>());
 
     public Task UpdateAsync(Consultation consultation) => Task.CompletedTask;
+
+    public Task DeleteAsync(Consultation consultation)
+    {
+        // Mówi C# że zadanie zakończyło się sukcesem nic nie robiąc
+        return Task.CompletedTask;
+    }
 }

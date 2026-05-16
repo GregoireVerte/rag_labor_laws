@@ -48,4 +48,10 @@ public class EfConsultationRepository : IConsultationRepository
             .Include(c => c.Messages) // dołożone by widzieć historię
             .ToListAsync();
     }
+
+    public async Task DeleteAsync(Consultation consultation)
+    {
+        _context.Consultations.Remove(consultation);
+        await _context.SaveChangesAsync();
+    }
 }

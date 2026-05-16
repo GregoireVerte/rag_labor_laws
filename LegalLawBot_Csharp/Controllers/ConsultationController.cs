@@ -61,6 +61,15 @@ public class ConsultationController : ControllerBase
 
         return Ok(details);
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var deleted = await _consultationService.DeleteConsultationAsync(id);
+        if (!deleted) return NotFound("Nie znaleziono konsultacji o podanym Id.");
+
+        return Ok(new { Message = "Konsultacja została pomyślnie usunięta." });
+    }
 }
 
 // Prosty model (DTO) do odebrania pytania z JSONa; dodany opcjonalny parametr ConsultationId //

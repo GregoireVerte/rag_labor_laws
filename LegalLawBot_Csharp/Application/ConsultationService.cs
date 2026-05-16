@@ -91,6 +91,16 @@ public class ConsultationService
 
         return new ConsultationDetailsDto(consultation.Id, consultation.CreatedAt, history);
     }
+
+    // Usuwa wskazaną sesję wraz z historią - DELETE
+    public async Task<bool> DeleteConsultationAsync(Guid id)
+    {
+        var consultation = await _repository.GetByIdAsync(id);
+        if (consultation == null) return false;
+
+        await _repository.DeleteAsync(consultation);
+        return true;
+    }
 }
 
 public record ConsultationSummaryDto(Guid Id, DateTime CreatedAt, string FirstQuestion);

@@ -14,4 +14,6 @@ public interface IConsultationRepository
 
     // Aktualizuje istniejącą (np. gdy dojdzie odpowiedź z Pythona)
     Task UpdateAsync(Consultation consultation);
+
+    Task DeleteAsync(Consultation consultation);
 }
