@@ -70,7 +70,28 @@ public class ConsultationController : ControllerBase
 
         return Ok(new { Message = "Konsultacja została pomyślnie usunięta." });
     }
+    [HttpPatch("{id}/title")]
+    public async Task<IActionResult> UpdateTitle(Guid id, [FromBody] UpdateTitleRequest request)
+    {
+        try
+        {
+            var updated = await _consultationService.UpdateTitleAsync(id, request.Title);
+            if (!updated) return NotFound("Nie znaleziono konsultacji o podanym Id.");
+
+            return Ok(new { Message = "Tytuł konsultacji został pomyślnie zmieniony." });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Błąd serwera: {ex.Message}");
+        }
+    }
 }
 
 // Prosty model (DTO) do odebrania pytania z JSONa; dodany opcjonalny parametr ConsultationId //
 public record AskRequest(string Question, Guid? ConsultationId = null);
+
+public record UpdateTitleRequest(string Title);

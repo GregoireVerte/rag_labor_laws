@@ -42,6 +42,9 @@ public class Consultation
 {
     public Guid Id { get; private set; } = Guid.NewGuid();
 
+    // Tytuł konsultacji (z możliwością zmiany tylko wewnątrz domeny)
+    public string Title { get; private set; }
+
     // powiązanie z użytkownikiem (Type-Safe)
     public UserId CreatedBy { get; private set; }
 
@@ -67,12 +70,16 @@ public class Consultation
     {
         CreatedBy = null!;
         State = null!;
+        Title = null!;
     }
 
     private Consultation(UserQuery query, UserId userId)
     {
         CreatedBy = userId ?? throw new ArgumentNullException(nameof(userId));
         State = new InitializedConsultation(query);
+
+        // Automatyczny tytuł w konstruktorze prywatnym (pierwsze 30 znaków pytania + ... jeśli jest dłuższe)
+        Title = query.Text.Length > 30 ? query.Text[..30] + "..." : query.Text;
 
         // Dodaje pierwsze pytanie do historii
         _messages.Add(new Message(MessageRole.User, query.Text));
@@ -111,5 +118,13 @@ public class Consultation
 
         // Resetuje stan na Initialized (czyli "czekam na odpowiedź")
         State = new InitializedConsultation(query);
+    }
+    // Bezpieczna zmiana tytułu konsultacji
+    public void UpdateTitle(string newTitle)
+    {
+        if (string.IsNullOrWhiteSpace(newTitle))
+            throw new ArgumentException("Tytuł konsultacji nie może być pusty.", nameof(newTitle));
+
+        Title = newTitle;
     }
 }

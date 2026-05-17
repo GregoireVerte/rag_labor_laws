@@ -34,7 +34,14 @@ public class EfConsultationRepository : IConsultationRepository
         // to zapobiegnie błędowi 500 jeśli Postgres uzna że update rodzica był zbędny
         if (entry.State == EntityState.Modified)
         {
-            entry.State = EntityState.Unchanged;
+            // Sprawdza czy właściwość Title została faktycznie zmodyfikowana
+            // Jeśli NIE została zmieniona to znaczy że EF Core błędnie oznaczył
+            // cały obiekt jako zmodyfikowany (np. przy dodawaniu wiadomości)
+            // Wtedy bezpiecznie cofa stan do Unchanged.
+            if (!entry.Property(c => c.Title).IsModified)
+            {
+                entry.State = EntityState.Unchanged;
+            }
         }
 
         await _context.SaveChangesAsync();

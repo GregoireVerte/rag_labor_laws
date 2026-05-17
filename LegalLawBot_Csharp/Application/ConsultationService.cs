@@ -74,7 +74,7 @@ public class ConsultationService
         return consultations.Select(c => new ConsultationSummaryDto(
             c.Id,
             c.CreatedAt,
-            c.Messages.FirstOrDefault()?.Content ?? "Nowa konsultacja"
+            c.Title // Pobiera bezpośrednio właściwość Title z bazy //
         ));
     }
 
@@ -101,8 +101,21 @@ public class ConsultationService
         await _repository.DeleteAsync(consultation);
         return true;
     }
+    // Zmiana tytułu konsultacji - PATCH
+    public async Task<bool> UpdateTitleAsync(Guid id, string newTitle)
+    {
+        var consultation = await _repository.GetByIdAsync(id);
+        if (consultation == null) return false;
+
+        // Wywołuje bezpieczną metodę biznesową z encji (tam jest walidacja)
+        consultation.UpdateTitle(newTitle);
+
+        // Zapisuje zmiany w bazie przez repozytorium
+        await _repository.UpdateAsync(consultation);
+        return true;
+    }
 }
 
-public record ConsultationSummaryDto(Guid Id, DateTime CreatedAt, string FirstQuestion);
+public record ConsultationSummaryDto(Guid Id, DateTime CreatedAt, string Title);
 
 public record ConsultationDetailsDto(Guid Id, DateTime CreatedAt, List<ChatMessageDto> History);
