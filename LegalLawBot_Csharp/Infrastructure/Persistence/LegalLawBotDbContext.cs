@@ -13,6 +13,7 @@ public class LegalLawBotDbContext : DbContext
 
     // Definicje zbiorów danych (tabele) // każda właściwość DbSet odpowiada tabeli w bazie danych //
     public DbSet<Consultation> Consultations { get; set; }
+    public DbSet<User> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -84,6 +85,38 @@ public class LegalLawBotDbContext : DbContext
                           .Select(ArticleId.Create)
                           .ToList())
                 .Metadata.SetValueComparer(articleIdListComparer);
+        });
+
+        // Konfiguracja tabeli użytkowników
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.ToTable("Users");
+            entity.HasKey(u => u.Id);
+
+            // 1. Konwerter dla UserId (używa tego samego userIdComparer który już jest w pliku)
+            entity.Property(u => u.Id)
+                .HasConversion(
+                    v => v.Value,            // Z UserId na Guid do bazy
+                    v => UserId.Create(v))  // Z Guid na UserId z bazy
+                .Metadata.SetValueComparer(userIdComparer);
+
+            // 2. Konwerter dla EmailAddress
+            entity.Property(u => u.Email)
+                .HasConversion(
+                    v => v.Value,
+                    v => EmailAddress.Create(v));
+
+            // 3. Konwerter dla UserStatus
+            entity.Property(u => u.Status)
+                .HasConversion(
+                    v => v.Value,
+                    v => v == "Zablokowany" ? UserStatus.Zablokowany : UserStatus.Aktywny);
+
+            // 4. Konwerter dla UserRole
+            entity.Property(u => u.Role)
+                .HasConversion(
+                    v => v.Name,
+                    v => v == "Administrator" ? UserRole.Administrator : UserRole.Standard);
         });
 
         base.OnModelCreating(modelBuilder);

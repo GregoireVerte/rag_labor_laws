@@ -124,6 +124,15 @@ namespace LegalLawBot_Csharp.Domain
         public UserStatus Status { get; private set; }
         public UserRole Role { get; private set; }
 
+        // Pusty konstruktor - wymagany przez EF Core do odtwarzania użytkownika z bazy
+        private User()
+        {
+            Id = null!;
+            Email = null!;
+            Status = null!;
+            Role = null!;
+        }
+
         // Prywatny konstruktor – tylko fabryka może tworzyć obiekt
         private User(UserId id, EmailAddress email)
         {
