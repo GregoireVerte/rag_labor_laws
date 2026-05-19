@@ -9,10 +9,12 @@ namespace LegalLawBot_Csharp.Controllers;
 public class ConsultationController : ControllerBase
 {
     private readonly ConsultationService _consultationService;
+    private readonly IUserRepository _userRepository;
 
-    public ConsultationController(ConsultationService consultationService)
+    public ConsultationController(ConsultationService consultationService, IUserRepository userRepository)
     {
         _consultationService = consultationService;
+        _userRepository = userRepository;
     }
 
     [HttpPost("ask")]
@@ -25,6 +27,13 @@ public class ConsultationController : ControllerBase
 
             // Używa tego samego stałego ID co w GetAll, żeby widzieć wyniki w testach
             var userId = UserId.Create(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+
+            // Weryfikacja tożsamości w bazie danych
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+            {
+                return Unauthorized("Twój profil użytkownika nie został znaleziony w systemie.");
+            }
 
             // Przekazuje zadanie do orkiestratora -> Application Layer ; z opcjonalnym ID sesji
             var consultationId = await _consultationService.AskQuestionAsync(userId, request.Question, request.ConsultationId);
@@ -48,6 +57,13 @@ public class ConsultationController : ControllerBase
     {
         // Na razie używa stałego ID (później do zastąpienia Admin ID)
         var userId = UserId.Create(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+
+        // Weryfikacja tożsamości w bazie danych przed pobraniem sesji
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null)
+        {
+            return Unauthorized("Brak uprawnień do przeglądania tej listy sesji.");
+        }
 
         var sessions = await _consultationService.GetUserConsultationsAsync(userId);
         return Ok(sessions);

@@ -21,6 +21,7 @@ builder.Services.AddHttpClient<ILegalBrainService, LegalBrainServiceClient>(clie
 // 3. Rejestracja Repozytorium (Prawdziwe - EF Core)
 // Teraz aplikacja będzie zapisywać dane w Supabase zamiast w pamięci RAM
 builder.Services.AddScoped<IConsultationRepository, EfConsultationRepository>();
+builder.Services.AddScoped<IUserRepository, EfUserRepository>();
 
 // Add services to the container.
 
