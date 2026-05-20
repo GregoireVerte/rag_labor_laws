@@ -93,6 +93,21 @@ namespace LegalLawBot_Csharp.Domain
         // Fabryka do tworzenia nowego użytkownika
         public static UserId New() => Create(Guid.NewGuid());
     }
+    // Rekord: TelegramChatId – opakowanie dla 64-bitowego ID z Telegrama (type-safe)
+    public record TelegramChatId
+    {
+        public long Value { get; }
+
+        private TelegramChatId(long value) => Value = value;
+
+        public static TelegramChatId Create(long value)
+        {
+            if (value == 0)
+                throw new ArgumentException("Identyfikator Telegram Chat ID nie może być zerem.");
+
+            return new TelegramChatId(value);
+        }
+    }
     // Wspierający rekord: UserStatus – status jako value object (unikanie stringa i enuma)
     public record UserStatus
     {
@@ -123,6 +138,7 @@ namespace LegalLawBot_Csharp.Domain
         public EmailAddress Email { get; private set; }
         public UserStatus Status { get; private set; }
         public UserRole Role { get; private set; }
+        public TelegramChatId? TelegramChatId { get; private set; } // opcjonalne mapowanie (Telegram)
 
         // Pusty konstruktor - wymagany przez EF Core do odtwarzania użytkownika z bazy
         private User()
@@ -163,6 +179,11 @@ namespace LegalLawBot_Csharp.Domain
         public void ChangeEmail(EmailAddress newEmail)
         {
             Email = newEmail;
+        }
+        // metoda biznesowa do bezpiecznego powiązania konta z Telegramem
+        public void LinkTelegram(TelegramChatId telegramChatId)
+        {
+            TelegramChatId = telegramChatId ?? throw new ArgumentNullException(nameof(telegramChatId));
         }
     }
 }
