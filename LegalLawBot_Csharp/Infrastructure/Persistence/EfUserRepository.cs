@@ -20,6 +20,13 @@ public class EfUserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 
+    // Implementacja szukania po Telegram Chat ID
+    public async Task<User?> GetByTelegramChatIdAsync(TelegramChatId chatId)
+    {
+        return await _context.Users
+            .FirstOrDefaultAsync(u => u.TelegramChatId == chatId);
+    }
+
     // Dodawanie nowego użytkownika do bazy
     public async Task AddAsync(User user)
     {

@@ -9,4 +9,6 @@ public interface IUserRepository
 
     // Dodawanie nowego użytkownika do bazy danych
     Task AddAsync(User user);
+    // Szukanie użytkownika po jego identyfikatorze z Telegrama
+    Task<User?> GetByTelegramChatIdAsync(TelegramChatId chatId);
 }

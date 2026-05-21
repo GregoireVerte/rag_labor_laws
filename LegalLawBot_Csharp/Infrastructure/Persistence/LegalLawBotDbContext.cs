@@ -117,6 +117,12 @@ public class LegalLawBotDbContext : DbContext
                 .HasConversion(
                     v => v.Name,
                     v => v == "Administrator" ? UserRole.Administrator : UserRole.Standard);
+
+            // 5. Konwerter dla opcjonalnego TelegramChatId (obsługuje wartości null)
+            entity.Property(u => u.TelegramChatId)
+                .HasConversion(
+                    v => v != null ? (long?)v.Value : null,                 // z obiektu na long? (do bazy)
+                    v => v.HasValue ? TelegramChatId.Create(v.Value) : null); // z long? na obiekt (z bazy)
         });
 
         base.OnModelCreating(modelBuilder);
