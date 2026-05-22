@@ -105,9 +105,42 @@ public class ConsultationController : ControllerBase
             return StatusCode(500, $"Błąd serwera: {ex.Message}");
         }
     }
+    [HttpPost("admin/link-telegram")]
+    public async Task<IActionResult> LinkAdminTelegram([FromBody] LinkTelegramRequest request)
+    {
+        try
+        {
+            // 1. Pobiera stałe ID Admina z bazy danych
+            var adminId = UserId.Create(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+            var user = await _userRepository.GetByIdAsync(adminId);
+
+            if (user == null)
+                return NotFound("Nie znaleziono profilu administratora w bazie.");
+
+            // 2. Tworzy obiekt wartości (tu odpali się ewentualna walidacja)
+            var telegramId = TelegramChatId.Create(request.ChatId);
+
+            // 3. Wywołuje czystą metodę biznesową z domeny (DDD)
+            user.LinkTelegram(telegramId);
+
+            // 4. Zapisuje zaktualizowanego użytkownika w Supabase przez repozytorium
+            await _userRepository.UpdateAsync(user);
+
+            return Ok(new { Message = $"Pomyślnie powiązano konto administratora z Telegram Chat ID: {request.ChatId}" });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Błąd serwera: {ex.Message}");
+        }
+    }
 }
 
 // Prosty model (DTO) do odebrania pytania z JSONa; dodany opcjonalny parametr ConsultationId //
 public record AskRequest(string Question, Guid? ConsultationId = null);
 
 public record UpdateTitleRequest(string Title);
+public record LinkTelegramRequest(long ChatId);

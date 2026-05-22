@@ -33,4 +33,13 @@ public class EfUserRepository : IUserRepository
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
     }
+    // Implementacja zapisywania zmian w użytkowniku
+    public async Task UpdateAsync(User user)
+    {
+        // Informuje EF Core że obiekt użytkownika został zmodyfikowany
+        _context.Users.Update(user);
+
+        // Wysyła zapytanie UPDATE do Bazy danych (Supabase)
+        await _context.SaveChangesAsync();
+    }
 }
