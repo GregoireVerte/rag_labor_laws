@@ -23,6 +23,9 @@ builder.Services.AddHttpClient<ILegalBrainService, LegalBrainServiceClient>(clie
 builder.Services.AddScoped<IConsultationRepository, EfConsultationRepository>();
 builder.Services.AddScoped<IUserRepository, EfUserRepository>();
 
+// 4. Rejestracja bota Telegrama jako serwisu w tle
+builder.Services.AddHostedService<TelegramBotWorker>();
+
 // Add services to the container.
 
 builder.Services.AddControllers();

@@ -37,6 +37,9 @@ public class TelegramBotWorker : BackgroundService
         var me = await _botClient.GetMe(cancellationToken: stoppingToken);
         _logger.LogInformation("Uruchomiono bota Telegrama! Nazwa: {BotName}, Username: @{BotUsername}", me.FirstName, me.Username);
 
+        // Automatyczne czyszczenie starego webhooka w chmurze Telegrama (naprawia błąd 409)
+        await _botClient.DeleteWebhook(cancellationToken: stoppingToken);
+
         // 3. Konfiguracja opcji odbierania wiadomości
         var receiverOptions = new ReceiverOptions
         {
