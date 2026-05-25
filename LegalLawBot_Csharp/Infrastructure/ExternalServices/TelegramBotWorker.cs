@@ -60,8 +60,24 @@ public class TelegramBotWorker : BackgroundService
 
     private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Otrzymano nową wiadomość w tle!");
-        await Task.CompletedTask;
+        // 1. Sprawdza czy otrzymany pakiet to na pewno nowa wiadomość tekstowa
+        if (update.Message is not { Text: { } messageText } message)
+            return;
+
+        // 2. Wyciąga dane: unikalny numer czatu (Chat ID) oraz imię nadawcy
+        var chatId = message.Chat.Id;
+        var username = message.From?.FirstName ?? "Nieznajomy";
+
+        // 3. Loguje info w czarnym oknie konsoli backendu
+        _logger.LogInformation("Bot otrzymał wiadomość od {Name} (ChatID: {Id}): '{Text}'", username, chatId, messageText);
+
+        // 4. Szybka odpowiedź (Echo) wysłana bezpośrednio na Telegram użytkownika
+        // W wersji Telegram.Bot 22+ używa nazwy metody "SendMessage" zamiast "SendMessageAsync"
+        await botClient.SendMessage(
+            chatId: chatId,
+            text: $"Cześć {username}! Słyszę Cię głośno i wyraźnie. Napisałeś: {messageText}",
+            cancellationToken: cancellationToken
+        );
     }
 
     private Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
