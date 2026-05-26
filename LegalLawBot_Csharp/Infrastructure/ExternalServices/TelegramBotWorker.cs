@@ -12,12 +12,18 @@ public class TelegramBotWorker : BackgroundService
 {
     private readonly ILogger<TelegramBotWorker> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IServiceProvider _serviceProvider;
     private TelegramBotClient? _botClient;
 
-    public TelegramBotWorker(ILogger<TelegramBotWorker> logger, IConfiguration configuration)
+    // KONSTRUKTOR
+    public TelegramBotWorker(
+        ILogger<TelegramBotWorker> logger,
+        IConfiguration configuration,
+        IServiceProvider serviceProvider)
     {
         _logger = logger;
         _configuration = configuration;
+        _serviceProvider = serviceProvider;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -64,20 +70,42 @@ public class TelegramBotWorker : BackgroundService
         if (update.Message is not { Text: { } messageText } message)
             return;
 
-        // 2. Wyciąga dane: unikalny numer czatu (Chat ID) oraz imię nadawcy
+        // wyciąga dane: unikalny numer czatu (Chat ID) oraz imię nadawcy
         var chatId = message.Chat.Id;
         var username = message.From?.FirstName ?? "Nieznajomy";
 
-        // 3. Loguje info w czarnym oknie konsoli backendu
         _logger.LogInformation("Bot otrzymał wiadomość od {Name} (ChatID: {Id}): '{Text}'", username, chatId, messageText);
 
-        // 4. Szybka odpowiedź (Echo) wysłana bezpośrednio na Telegram użytkownika
-        // W wersji Telegram.Bot 22+ używa nazwy metody "SendMessage" zamiast "SendMessageAsync"
-        await botClient.SendMessage(
-            chatId: chatId,
-            text: $"Cześć {username}! Słyszę Cię głośno i wyraźnie. Napisałeś: {messageText}",
-            cancellationToken: cancellationToken
-        );
+        // 2. Otwiera tymczasową furtkę (Scope) dla usług Scoped (baza danych)
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            // 3. Wyciąga repozytorium użytkowników bezpośrednio z tej furtki
+            var userRepository = scope.ServiceProvider.GetRequiredService<Domain.IUserRepository>();
+
+            // 4. Szuka użytkownika w Supabase po jego Telegram Chat ID
+            var telegramChatId = Domain.TelegramChatId.Create(chatId);
+            var user = await userRepository.GetByTelegramChatIdAsync(telegramChatId);
+
+            // 5. Ochroniarz: jeśli bota zaczepi ktoś nieznajomy odmawia dostępu
+            if (user == null)
+            {
+                _logger.LogWarning("Odmowa dostępu dla ChatID: {Id} (Brak w bazie)", chatId);
+                await botClient.SendMessage(
+                    chatId: chatId,
+                    text: "Dostęp zablokowany. Twój identyfikator Telegram nie jest zarejestrowany w systemie Asystenta Prawa Pracy.",
+                    cancellationToken: cancellationToken
+                );
+                return;
+            }
+
+            // 6. Jeśli użytkownik istnieje wita go danymi wyciągniętymi prosto z bazy danych (Supabase)
+            await botClient.SendMessage(
+                chatId: chatId,
+                text: $"Autoryzacja pomyślna! Witaj {username}.\nRozpoznano Cię w systemie jako: {user.Role.Name}.\nStatus konta: {user.Status.Value}.",
+                cancellationToken: cancellationToken
+            );
+        }
+        // w tym miejscu furtka się zamyka – repozytorium i połączenie z bazy danych (Supabase) są niszczone w pamięci
     }
 
     private Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
