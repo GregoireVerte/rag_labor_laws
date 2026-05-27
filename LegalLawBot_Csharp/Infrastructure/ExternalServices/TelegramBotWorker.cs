@@ -98,10 +98,33 @@ public class TelegramBotWorker : BackgroundService
                 return;
             }
 
-            // 6. Jeśli użytkownik istnieje wita go danymi wyciągniętymi prosto z bazy danych (Supabase)
+            // 6.Użytkownik autoryzowany –> odpala RAG
+            // ponieważ serwer Pythona na Renderze potrzebuje kilku sekund na analizę
+            // najpierw wysyła użytkownikowi sygnał że system podjął pracę
             await botClient.SendMessage(
                 chatId: chatId,
-                text: $"Autoryzacja pomyślna! Witaj {username}.\nRozpoznano Cię w systemie jako: {user.Role.Name}.\nStatus konta: {user.Status.Value}.",
+                text: "Przeszukuję bazę wiedzy prawa pracy... ⏳ Proszę o chwilę cierpliwości. ⏳",
+                cancellationToken: cancellationToken
+            );
+
+            // wyciąga ConsultationService z tymczasowej "furtki" (scope)
+            var consultationService = scope.ServiceProvider.GetRequiredService<Application.ConsultationService>();
+
+            // Wywołuje pełny proces biznesowy:
+            // Tworzy nową sesję, zapisuje ją w Supabase, odpytuje Pythona na Renderze, dołącza artykuły i zapisuje odpowiedź
+            var consultationId = await consultationService.AskQuestionAsync(user.Id, messageText);
+
+            // Pobiera szczegóły tej nowo utworzonej sesji, żeby wyciągnąć treść odpowiedzi AI
+            var details = await consultationService.GetConsultationDetailsAsync(consultationId);
+
+            // Ostatnia wiadomość w historii to odpowiedź asystenta (z małej litery "content")
+            var aiResponse = details?.History.LastOrDefault()?.content
+                             ?? "Przepraszam, wystąpił problem podczas pobierania odpowiedzi z bazy wiedzy.";
+
+            // Odsyła ostateczną treść merytoryczną bezpośrednio użytkownikowi na Telegram
+            await botClient.SendMessage(
+                chatId: chatId,
+                text: aiResponse,
                 cancellationToken: cancellationToken
             );
         }
