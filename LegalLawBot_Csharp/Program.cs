@@ -16,6 +16,9 @@ builder.Services.AddHttpClient<ILegalBrainService, LegalBrainServiceClient>(clie
 {
     // ADRES Z RENDERA
     client.BaseAddress = new Uri("https://rag-labor-laws-backend.onrender.com/");
+
+    // Zwiększenie czasu do 5 minut, żeby przeżyć wybudzanie darmowego Rendera
+    client.Timeout = TimeSpan.FromMinutes(5);
 });
 
 // 3. Rejestracja Repozytorium (Prawdziwe - EF Core)
