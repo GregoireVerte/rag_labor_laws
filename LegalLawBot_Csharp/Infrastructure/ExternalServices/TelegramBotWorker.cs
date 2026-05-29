@@ -5,6 +5,7 @@ using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using System.Collections.Concurrent;
 
 namespace LegalLawBot_Csharp.Infrastructure.ExternalServices;
 
@@ -14,6 +15,8 @@ public class TelegramBotWorker : BackgroundService
     private readonly IConfiguration _configuration;
     private readonly IServiceProvider _serviceProvider;
     private TelegramBotClient? _botClient;
+    // Schowek pamięci podręcznej (Klucz: ChatId z Telegrama, Wartość: Id sesji z Supabase)
+    private readonly ConcurrentDictionary<long, Guid> _activeSessions = new();
 
     // KONSTRUKTOR
     public TelegramBotWorker(
@@ -110,11 +113,17 @@ public class TelegramBotWorker : BackgroundService
             // wyciąga ConsultationService z tymczasowej "furtki" (scope)
             var consultationService = scope.ServiceProvider.GetRequiredService<Application.ConsultationService>();
 
-            // Wywołuje pełny proces biznesowy:
-            // Tworzy nową sesję, zapisuje ją w Supabase, odpytuje Pythona na Renderze, dołącza artykuły i zapisuje odpowiedź
-            var consultationId = await consultationService.AskQuestionAsync(user.Id, messageText);
+            // 6a. Sprawdza czy ten ChatID ma już przypisaną aktywną sesję w schowku
+            Guid? existingConsultationId = _activeSessions.TryGetValue(chatId, out var activeId) ? activeId : null;
 
-            // Pobiera szczegóły tej nowo utworzonej sesji, żeby wyciągnąć treść odpowiedzi AI
+            // Wywołuje pełny proces biznesowy (przekazujemy też ID starej sesji jeśli istniała):
+            // Tworzy nową sesję, zapisuje ją w Supabase, odpytuje Pythona na Renderze, dołącza artykuły i zapisuje odpowiedź
+            var consultationId = await consultationService.AskQuestionAsync(user.Id, messageText, existingConsultationId);
+
+            // 6b. Zapisuje (lub aktualizuje) ID sesji w schowku, aby kolejne pytania trafiały do tej samej rozmowy
+            _activeSessions[chatId] = consultationId;
+
+            // Pobiera szczegóły tej sesji, żeby wyciągnąć treść odpowiedzi AI
             var details = await consultationService.GetConsultationDetailsAsync(consultationId);
 
             // Ostatnia wiadomość w historii to odpowiedź asystenta (z małej litery "content")
