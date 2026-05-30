@@ -77,7 +77,27 @@ public class TelegramBotWorker : BackgroundService
         var chatId = message.Chat.Id;
         var username = message.From?.FirstName ?? "Nieznajomy";
 
+        // Loguje info w czarnym oknie konsoli backendu
         _logger.LogInformation("Bot otrzymał wiadomość od {Name} (ChatID: {Id}): '{Text}'", username, chatId, messageText);
+
+        // Obsługa komendy /reset
+        if (messageText.Trim().Equals("/reset", StringComparison.OrdinalIgnoreCase))
+        {
+            // Bezpiecznie usuwa ChatID ze słownika podręcznego (resetuje kontekst bota Telegrama)
+            _activeSessions.TryRemove(chatId, out _);
+
+            _logger.LogInformation("Wyczyszczono kontekst rozmowy dla ChatID: {Id}", chatId);
+
+            // Wysyła odpowiedź do użytkownika
+            await botClient.SendMessage(
+                chatId: chatId,
+                text: "Kontekst rozmowy został wyczyszczony! 🧠 Możemy zaczynać od nowa. O co chcesz zapytać?",
+                cancellationToken: cancellationToken
+            );
+
+            // Przerywa dalsze wykonywanie metody żeby nie wysyłać słowa "/reset" do Pythona
+            return;
+        }
 
         // 2. Otwiera tymczasową furtkę (Scope) dla usług Scoped (baza danych)
         using (var scope = _serviceProvider.CreateScope())
