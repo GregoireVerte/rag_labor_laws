@@ -138,24 +138,40 @@ public class TelegramBotWorker : BackgroundService
 
             // Wywołuje pełny proces biznesowy (przekazujemy też ID starej sesji jeśli istniała):
             // Tworzy nową sesję, zapisuje ją w Supabase, odpytuje Pythona na Renderze, dołącza artykuły i zapisuje odpowiedź
-            var consultationId = await consultationService.AskQuestionAsync(user.Id, messageText, existingConsultationId);
+            try
+            {
+                // próba kontaktu z Pythonem i bazą danych
+                var consultationId = await consultationService.AskQuestionAsync(user.Id, messageText, existingConsultationId);
 
-            // 6b. Zapisuje (lub aktualizuje) ID sesji w schowku, aby kolejne pytania trafiały do tej samej rozmowy
-            _activeSessions[chatId] = consultationId;
+                // 6b. Zapisuje (lub aktualizuje) ID sesji w schowku, aby kolejne pytania trafiały do tej samej rozmowy (tylko jeśli operacja się udała)
+                _activeSessions[chatId] = consultationId;
 
-            // Pobiera szczegóły tej sesji, żeby wyciągnąć treść odpowiedzi AI
-            var details = await consultationService.GetConsultationDetailsAsync(consultationId);
+                // Pobiera szczegóły tej sesji, żeby wyciągnąć treść odpowiedzi AI
+                var details = await consultationService.GetConsultationDetailsAsync(consultationId);
 
-            // Ostatnia wiadomość w historii to odpowiedź asystenta (z małej litery "content")
-            var aiResponse = details?.History.LastOrDefault()?.content
+                // Ostatnia wiadomość w historii to odpowiedź asystenta (z małej litery "content")
+                var aiResponse = details?.History.LastOrDefault()?.content
                              ?? "Przepraszam, wystąpił problem podczas pobierania odpowiedzi z bazy wiedzy.";
 
-            // Odsyła ostateczną treść merytoryczną bezpośrednio użytkownikowi na Telegram
-            await botClient.SendMessage(
-                chatId: chatId,
-                text: aiResponse,
-                cancellationToken: cancellationToken
-            );
+                // Odsyła ostateczną treść merytoryczną / odpowiedź bezpośrednio użytkownikowi na Telegram
+                await botClient.SendMessage(
+                    chatId: chatId,
+                    text: aiResponse,
+                    cancellationToken: cancellationToken
+                );
+            }
+            catch (Exception ex)
+            {
+                // Jeśli Python rzuci 500, zrzuci timeout lub Supabase nie odpowie – łapie to tutaj
+                _logger.LogError(ex, "Błąd krytyczny podczas procesowania zapytania RAG dla ChatID: {Id}", chatId);
+
+                // Informuje użytkownika zamiast zostawiać go w nieskończonym czekaniu
+                await botClient.SendMessage(
+                    chatId: chatId,
+                    text: "⚠️ Przepraszam, wystąpił problem techniczny po stronie serwera AI (brak odpowiedzi lub błąd wewnętrzny). Proszę, spróbuj powtórzyć pytanie za chwilę.",
+                    cancellationToken: cancellationToken
+                );
+            }
         }
         // w tym miejscu furtka się zamyka – repozytorium i połączenie z bazy danych (Supabase) są niszczone w pamięci
     }
