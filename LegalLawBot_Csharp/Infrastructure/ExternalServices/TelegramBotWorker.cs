@@ -69,15 +69,28 @@ public class TelegramBotWorker : BackgroundService
 
     private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
-        // 1. Sprawdza czy otrzymany pakiet to na pewno nowa wiadomość tekstowa
-        if (update.Message is not { Text: { } messageText } message)
+        // 1. Sprawdza czy w ogóle otrzymaliśmy jakikolwiek pakiet wiadomości
+        if (update.Message is not { } message)
             return;
 
-        // wyciąga dane: unikalny numer czatu (Chat ID) oraz imię nadawcy
+        // wyciąga dane podstawowe nadawcy: unikalny numer czatu (Chat ID) oraz imię nadawcy
         var chatId = message.Chat.Id;
         var username = message.From?.FirstName ?? "Nieznajomy";
 
-        // Loguje info w czarnym oknie konsoli backendu
+        // FALLBACK: Jeśli wiadomość nie zawiera tekstu (np. zdjęcie, naklejka, plik, głosówka)
+        if (message.Text is not { } messageText || string.IsNullOrWhiteSpace(message.Text))
+        {
+            _logger.LogWarning("Otrzymano nieobsługiwany format wiadomości od {Name} (ChatID: {Id})", username, chatId);
+
+            await botClient.SendMessage(
+                chatId: chatId,
+                text: "🤖 Jako Asystent Prawa Pracy potrafię analizować wyłącznie wiadomości tekstowe. Przepraszam, ale nie rozumiem zdjęć, dokumentów, naklejek ani nagrań głosowych. Proszę, opisz swój problem tekstem.",
+                cancellationToken: cancellationToken
+            );
+            return;
+        }
+
+        // Loguje info w czarnym oknie konsoli backendu (tutaj messageText na pewno już istnieje)
         _logger.LogInformation("Bot otrzymał wiadomość od {Name} (ChatID: {Id}): '{Text}'", username, chatId, messageText);
 
         // Obsługa komendy /reset
