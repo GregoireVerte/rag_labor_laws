@@ -15,8 +15,6 @@ public class TelegramBotWorker : BackgroundService
     private readonly IConfiguration _configuration;
     private readonly IServiceProvider _serviceProvider;
     private TelegramBotClient? _botClient;
-    // Schowek pamięci podręcznej (Klucz: ChatId z Telegrama, Wartość: Id sesji z Supabase)
-    private readonly ConcurrentDictionary<long, Guid> _activeSessions = new();
 
     // KONSTRUKTOR
     public TelegramBotWorker(
@@ -93,25 +91,6 @@ public class TelegramBotWorker : BackgroundService
         // Loguje info w czarnym oknie konsoli backendu (tutaj messageText na pewno już istnieje)
         _logger.LogInformation("Bot otrzymał wiadomość od {Name} (ChatID: {Id}): '{Text}'", username, chatId, messageText);
 
-        // Obsługa komendy /reset
-        if (messageText.Trim().Equals("/reset", StringComparison.OrdinalIgnoreCase))
-        {
-            // Bezpiecznie usuwa ChatID ze słownika podręcznego (resetuje kontekst bota Telegrama)
-            _activeSessions.TryRemove(chatId, out _);
-
-            _logger.LogInformation("Wyczyszczono kontekst rozmowy dla ChatID: {Id}", chatId);
-
-            // Wysyła odpowiedź do użytkownika
-            await botClient.SendMessage(
-                chatId: chatId,
-                text: "Kontekst rozmowy został wyczyszczony! 🧠 Możemy zaczynać od nowa. O co chcesz zapytać?",
-                cancellationToken: cancellationToken
-            );
-
-            // Przerywa dalsze wykonywanie metody żeby nie wysyłać słowa "/reset" do Pythona
-            return;
-        }
-
         // 2. Otwiera tymczasową furtkę (Scope) dla usług Scoped (baza danych)
         using (var scope = _serviceProvider.CreateScope())
         {
@@ -134,7 +113,26 @@ public class TelegramBotWorker : BackgroundService
                 return;
             }
 
-            // 6.Użytkownik autoryzowany –> odpala RAG
+            // obsługa dla /reset przy Telegramie
+            if (messageText.Trim().Equals("/reset", StringComparison.OrdinalIgnoreCase))
+            {
+                // Wywołuje metodę biznesową z encji User
+                user.ClearActiveConsultation();
+
+                // Zapisuje zaktualizowany profil użytkownika do bazy Supabase
+                await userRepository.UpdateAsync(user);
+
+                _logger.LogInformation("Wyczyszczono trwały kontekst rozmowy w bazie danych dla ChatID: {Id}", chatId);
+
+                await botClient.SendMessage(
+                    chatId: chatId,
+                    text: "Kontekst rozmowy został wyczyszczony! 🧠 Możemy zaczynać od nowa. O co chcesz zapytać?",
+                    cancellationToken: cancellationToken
+                );
+                return;
+            }
+
+            // 6. Użytkownik autoryzowany –> odpala RAG
             // ponieważ serwer Pythona na Renderze potrzebuje kilku sekund na analizę
             // najpierw wysyła użytkownikowi sygnał że system podjął pracę
             await botClient.SendMessage(
@@ -146,8 +144,8 @@ public class TelegramBotWorker : BackgroundService
             // wyciąga ConsultationService z tymczasowej "furtki" (scope)
             var consultationService = scope.ServiceProvider.GetRequiredService<Application.ConsultationService>();
 
-            // 6a. Sprawdza czy ten ChatID ma już przypisaną aktywną sesję w schowku
-            Guid? existingConsultationId = _activeSessions.TryGetValue(chatId, out var activeId) ? activeId : null;
+            // 6a. Sprawdza czy ten ChatID ma już przypisaną aktywną sesję - czyta ID bezpośrednio z profilu użytkownika z bazy
+            Guid? existingConsultationId = user.ActiveConsultationId;
 
             // Wywołuje pełny proces biznesowy (przekazujemy też ID starej sesji jeśli istniała):
             // Tworzy nową sesję, zapisuje ją w Supabase, odpytuje Pythona na Renderze, dołącza artykuły i zapisuje odpowiedź
@@ -156,8 +154,9 @@ public class TelegramBotWorker : BackgroundService
                 // próba kontaktu z Pythonem i bazą danych
                 var consultationId = await consultationService.AskQuestionAsync(user.Id, messageText, existingConsultationId);
 
-                // 6b. Zapisuje (lub aktualizuje) ID sesji w schowku, aby kolejne pytania trafiały do tej samej rozmowy (tylko jeśli operacja się udała)
-                _activeSessions[chatId] = consultationId;
+                // 6b. Zapisuje (lub aktualizuje) ID sesji, aby kolejne pytania trafiały do tej samej rozmowy (Zamiast zapisu do słownika, aktualizuje encję User i zapisuje w bazie Supabase)
+                user.SetActiveConsultation(consultationId);
+                await userRepository.UpdateAsync(user);
 
                 // Pobiera szczegóły tej sesji, żeby wyciągnąć treść odpowiedzi AI
                 var details = await consultationService.GetConsultationDetailsAsync(consultationId);

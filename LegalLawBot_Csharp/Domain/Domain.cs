@@ -140,6 +140,9 @@ namespace LegalLawBot_Csharp.Domain
         public UserRole Role { get; private set; }
         public TelegramChatId? TelegramChatId { get; private set; } // opcjonalne mapowanie (Telegram)
 
+        // Trwała pamięć aktywnej rozmowy Telegrama w bazie danych (nullable, bo rozmowa może być zamknięta)
+        public Guid? ActiveConsultationId { get; private set; }
+
         // Pusty konstruktor - wymagany przez EF Core do odtwarzania użytkownika z bazy
         private User()
         {
@@ -147,6 +150,7 @@ namespace LegalLawBot_Csharp.Domain
             Email = null!;
             Status = null!;
             Role = null!;
+            ActiveConsultationId = null;
         }
 
         // Prywatny konstruktor – tylko fabryka może tworzyć obiekt
@@ -184,6 +188,20 @@ namespace LegalLawBot_Csharp.Domain
         public void LinkTelegram(TelegramChatId telegramChatId)
         {
             TelegramChatId = telegramChatId ?? throw new ArgumentNullException(nameof(telegramChatId));
+        }
+        // Ustawia nową lub kolejną aktywną sesję rozmowy
+        public void SetActiveConsultation(Guid consultationId)
+        {
+            if (consultationId == Guid.Empty)
+                throw new ArgumentException("Identyfikator konsultacji nie może być pusty (Guid.Empty).", nameof(consultationId));
+
+            ActiveConsultationId = consultationId;
+        }
+
+        // Czyści pamięć podręczną (wywoływane przez komendę /reset)
+        public void ClearActiveConsultation()
+        {
+            ActiveConsultationId = null;
         }
     }
 }
