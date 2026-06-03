@@ -123,6 +123,10 @@ public class LegalLawBotDbContext : DbContext
                 .HasConversion(
                     v => v != null ? (long?)v.Value : null,                 // z obiektu na long? (do bazy)
                     v => v.HasValue ? TelegramChatId.Create(v.Value) : null); // z long? na obiekt (z bazy)
+
+            // 6. JAWNA KONFIGURACJA DLA TRWAŁEJ PAMIĘCI SESJI TELEGRAMA
+            entity.Property(u => u.ActiveConsultationId)
+                .IsRequired(false); // jawna deklaracja że kolumna w bazie ma pozwalać na NULL
         });
 
         base.OnModelCreating(modelBuilder);
