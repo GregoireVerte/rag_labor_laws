@@ -5,12 +5,14 @@ import "./App.css";
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const getOrCreateSessionId = () => {
+  // Jeśli w pamięci przeglądarki jest już zapisany stary Guid, pobierz go
   let sessionId = localStorage.getItem("chat_session_id");
-  if (!sessionId) {
-    sessionId = "session-" + Math.random().toString(36).substring(2, 9);
-    localStorage.setItem("chat_session_id", sessionId);
+  // Jeśli zawierał stary prefix "session-", wyczyść go
+  if (sessionId && sessionId.includes("session-")) {
+    localStorage.removeItem("chat_session_id");
+    return null;
   }
-  return sessionId;
+  return sessionId || null; // Zwraca poprawny Guid lub null
 };
 
 function App() {
@@ -99,13 +101,10 @@ function App() {
   };
 
   const startNewChat = () => {
-    const newId = "session-" + Math.random().toString(36).substring(2, 9);
-    setSessionId(newId);
-    localStorage.setItem("chat_session_id", newId);
+    setSessionId(null);
+    localStorage.removeItem("chat_session_id");
     setMessages([]);
     setQuestion("");
-    // Nie przeładowuje całej strony (window.location.reload()),
-    // dzięki temu przejście jest płynne
   };
 
   const deleteSession = async (e, id) => {
@@ -166,12 +165,12 @@ function App() {
           <div className="messages-container">
             {messages.map((msg, index) => (
               <div key={index} className={`message-bubble ${msg.role}`}>
-                <div className="message-content">{msg.text}</div>
+                <div className="message-content">{msg.content || msg.text}</div>
 
                 {/* Przycisk kopiowania dla każdej wiadomości chatu (User i AI) */}
                 <button
                   className="copy-btn"
-                  onClick={() => copyToClipboard(msg.text)}
+                  onClick={() => copyToClipboard(msg.content || msg.text)}
                   title="Kopiuj treść"
                 >
                   📋
