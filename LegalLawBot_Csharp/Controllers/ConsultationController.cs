@@ -17,7 +17,8 @@ public class ConsultationController : ControllerBase
         _userRepository = userRepository;
     }
 
-    [HttpPost("ask")]
+    // Było: [HttpPost("ask")]
+    [HttpPost("/ask")]
     public async Task<IActionResult> Ask([FromBody] AskRequest request)
     {
         try
@@ -52,7 +53,8 @@ public class ConsultationController : ControllerBase
             return StatusCode(500, $"Błąd serwera: {ex.Message}");
         }
     }
-    [HttpGet]
+    // Było: [HttpGet]
+    [HttpGet("/sessions")]
     public async Task<IActionResult> GetAll()
     {
         // Na razie używa stałego ID (później do zastąpienia Admin ID)
@@ -69,7 +71,8 @@ public class ConsultationController : ControllerBase
         return Ok(sessions);
     }
 
-    [HttpGet("{id}")]
+    // Było: [HttpGet("{id}")]
+    [HttpGet("/history/{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
         var details = await _consultationService.GetConsultationDetailsAsync(id);
@@ -78,7 +81,8 @@ public class ConsultationController : ControllerBase
         return Ok(details);
     }
 
-    [HttpDelete("{id}")]
+    // Było: [HttpDelete("{id}")]
+    [HttpDelete("/sessions/{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {
         var deleted = await _consultationService.DeleteConsultationAsync(id);
