@@ -84,10 +84,12 @@ public class ConsultationService
         var consultation = await _repository.GetByIdAsync(id);
         if (consultation == null) return null;
 
-        var history = consultation.Messages.Select(m => new ChatMessageDto(
-            m.Role.ToString().ToLower(),
-            m.Content
-        )).ToList();
+        var history = consultation.Messages
+            .OrderBy(m => m.CreatedAt) // Układa wiadomości od najstarszej do najnowszej
+            .Select(m => new ChatMessageDto(
+                m.Role.ToString().ToLower(),
+                m.Content
+            )).ToList();
 
         return new ConsultationDetailsDto(consultation.Id, consultation.CreatedAt, history);
     }
@@ -113,6 +115,19 @@ public class ConsultationService
         // Zapisuje zmiany w bazie przez repozytorium
         await _repository.UpdateAsync(consultation);
         return true;
+    }
+    // Wyciąga treść i źródła ostatniej odpowiedzi dla Frontendu
+    public async Task<(string Answer, List<string> Sources)> GetLatestAnswerAsync(Guid consultationId)
+    {
+        var consultation = await _repository.GetByIdAsync(consultationId);
+        var lastAssistantMessage = consultation?.Messages
+            .OrderBy(m => m.CreatedAt)
+            .LastOrDefault(m => m.Role.ToString().Equals("Assistant", StringComparison.OrdinalIgnoreCase));
+
+        var answer = lastAssistantMessage?.Content ?? "";
+        var sources = lastAssistantMessage?.Sources.Select(s => s.Value).ToList() ?? new List<string>();
+
+        return (answer, sources);
     }
 }
 

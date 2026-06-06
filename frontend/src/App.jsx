@@ -37,7 +37,13 @@ function App() {
   const loadHistory = async (id) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/history/${id}`);
-      setMessages(response.data);
+
+      // Sprawdza czy .NET przysłał obiekt z polem 'history', jeśli nie, bierze czysty response
+      const historyArray = response.data.history || response.data;
+
+      // ustawia tablicę żeby .map() nigdy się nie wywalił
+      setMessages(Array.isArray(historyArray) ? historyArray : []);
+
       setSessionId(id);
       localStorage.setItem("chat_session_id", id);
     } catch (error) {

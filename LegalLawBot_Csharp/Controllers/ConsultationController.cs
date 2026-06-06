@@ -39,8 +39,11 @@ public class ConsultationController : ControllerBase
             // Przekazuje zadanie do orkiestratora -> Application Layer ; z opcjonalnym ID sesji
             var consultationId = await _consultationService.AskQuestionAsync(userId, request.Question, request.ConsultationId);
 
-            // Zwraca info o sukcesie i ID nowej konsultacji
-            return Ok(new { Message = "Konsultacja zakończona sukcesem!", Id = consultationId });
+            // Pobiera dokładnie to, czego oczekuje stary Frontend
+            var (answer, sources) = await _consultationService.GetLatestAnswerAsync(consultationId);
+
+            // Zwracamy format idealny dla Reacta, dorzucając ID sesji
+            return Ok(new { answer = answer, sources = sources, id = consultationId });
         }
         catch (ArgumentException ex)
         {
@@ -144,7 +147,11 @@ public class ConsultationController : ControllerBase
 }
 
 // Prosty model (DTO) do odebrania pytania z JSONa; dodany opcjonalny parametr ConsultationId //
-public record AskRequest(string Question, Guid? ConsultationId = null);
+// Użycie JsonPropertyName, żeby .NET wiedział, że "session_id" z Reacta to "ConsultationId"
+public record AskRequest(
+    string Question,
+    [property: System.Text.Json.Serialization.JsonPropertyName("session_id")] Guid? ConsultationId = null
+);
 
 public record UpdateTitleRequest(string Title);
 public record LinkTelegramRequest(long ChatId);
