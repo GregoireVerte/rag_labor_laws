@@ -42,7 +42,7 @@ public class ConsultationController : ControllerBase
             // Pobiera dokładnie to, czego oczekuje stary Frontend
             var (answer, sources) = await _consultationService.GetLatestAnswerAsync(consultationId);
 
-            // Zwracamy format idealny dla Reacta, dorzucając ID sesji
+            // Zwraca format idealny dla Reacta dorzucając ID sesji
             return Ok(new { answer = answer, sources = sources, id = consultationId });
         }
         catch (ArgumentException ex)

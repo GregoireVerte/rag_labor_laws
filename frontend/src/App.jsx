@@ -82,11 +82,13 @@ function App() {
 
     setLoading(true);
     try {
+      // Wysyła zapytanie do C# i czeka na odpowiedź
       const response = await axios.post(`${API_BASE_URL}/ask`, {
         question: userQuery,
         session_id: sessionId,
       });
 
+      // Mapuje odpowiedź od asystenta
       const aiMsg = {
         role: "assistant",
         text: response.data.answer,
@@ -94,7 +96,13 @@ function App() {
       };
       setMessages((prev) => [...prev, aiMsg]);
 
-      // Po pierwszym pytaniu w nowej sesji odświeża listę w Sidebarze
+      // jeśli to był nowy wątek zapisuje ID z C#
+      if (!sessionId) {
+        setSessionId(response.data.id);
+        localStorage.setItem("chat_session_id", response.data.id);
+      }
+
+      // Po udanej odpowiedzi odświeża listę sesji w Sidebarze
       fetchSessions();
     } catch (error) {
       console.error("Błąd:", error);
