@@ -47,7 +47,8 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // porty Reacta
+        // prawdziwy adres z Vercel obok portów deweloperskich
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000", "https://rag-labor-laws.vercel.app")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -69,5 +70,13 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Przechwytywanie dynamicznego portu dla serwera Render
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    // Nakazuje .NET słuchać na porcie przydzielonym przez Render pod adresem 0.0.0.0
+    app.Urls.Add($"http://0.0.0.0:{port}");
+}
 
 app.Run();
