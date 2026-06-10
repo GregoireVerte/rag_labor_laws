@@ -19,6 +19,9 @@ builder.Services.AddHttpClient<ILegalBrainService, LegalBrainServiceClient>(clie
 
     // Zwiększenie czasu do 5 minut, żeby przeżyć wybudzanie darmowego Rendera
     client.Timeout = TimeSpan.FromMinutes(5);
+
+    // Dodanie User-Agent'a żeby zapora Rendera nie blokowała aplikacji jako bota
+    client.DefaultRequestHeaders.Add("User-Agent", "LegalLawBot-CsharpBackend/1.0");
 });
 
 // 3. Rejestracja Repozytorium (Prawdziwe - EF Core)
