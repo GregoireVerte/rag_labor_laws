@@ -5,6 +5,7 @@ using LegalLawBot_Csharp.Infrastructure.Persistence;
 // using LegalLawBot_Csharp.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
+using Telegram.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,11 +30,13 @@ builder.Services.AddHttpClient<ILegalBrainService, LegalBrainServiceClient>(clie
 builder.Services.AddScoped<IConsultationRepository, EfConsultationRepository>();
 builder.Services.AddScoped<IUserRepository, EfUserRepository>();
 
-// 4. Rejestracja bota Telegrama jako serwisu w tle
-builder.Services.AddHostedService<TelegramBotWorker>();
+// Rejestracja klienta Telegrama (wczytuje token ze zmiennych środowiskowych)
+var token = builder.Configuration["TelegramBot:Token"]
+            ?? Environment.GetEnvironmentVariable("TelegramBot__Token")
+            ?? throw new InvalidOperationException("Brak tokenu bota Telegrama w konfiguracji serwera!");
+builder.Services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(token));
 
-// Add services to the container.
-
+// Add services to the container
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 

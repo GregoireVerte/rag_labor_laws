@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using LegalLawBot_Csharp.Application;
 using LegalLawBot_Csharp.Domain;
+using Telegram.Bot;
+using Telegram.Bot.Types;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LegalLawBot_Csharp.Controllers;
 
@@ -10,11 +13,79 @@ public class ConsultationController : ControllerBase
 {
     private readonly ConsultationService _consultationService;
     private readonly IUserRepository _userRepository;
+    private readonly IServiceScopeFactory _scopeFactory; // Fabryka do bezpiecznych wątków w tle
+    private readonly ITelegramBotClient _botClient;       // Klient Telegrama do odsyłania odpowiedzi
 
-    public ConsultationController(ConsultationService consultationService, IUserRepository userRepository)
+    public ConsultationController(
+        ConsultationService consultationService,
+        IUserRepository userRepository,
+        IServiceScopeFactory scopeFactory,
+        ITelegramBotClient botClient)
     {
         _consultationService = consultationService;
         _userRepository = userRepository;
+        _scopeFactory = scopeFactory;
+        _botClient = botClient;
+    }
+
+    // ENDPOINT: Bramka dla Webhooka od Telegrama
+    [HttpPost("/webhook/telegram")]
+    public IActionResult TelegramWebhook([FromBody] Update update)
+    {
+        // Sprawdza czy to zwykła wiadomość tekstowa
+        if (update.Message is not { Text: { } messageText } message)
+            return Ok(); // Jeśli to edycja posta lub załącznik, ignoruje, ale daje 200 OK
+
+        var chatId = message.Chat.Id;
+        var firstName = message.Chat.FirstName ?? "Użytkownik";
+
+        // Odpowiada Telegramowi w ułamku sekundy że odebrało przesyłkę
+        // Całą logikę biznesową wrzuca do odseparowanego zadania w tle (Fire-and-Forget)
+        _ = Task.Run(async () =>
+        {
+            // Ponieważ ten kod działa w tle trzeba ręcznie otworzyć nowy "Scope" dla bazy danych
+            using var scope = _scopeFactory.CreateScope();
+            var scopedUserService = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+            var scopedConsultationService = scope.ServiceProvider.GetRequiredService<ConsultationService>();
+
+            try
+            {
+                await _botClient.SendMessage(chatId, "Przeszukuję bazę wiedzy prawa pracy... 🔍 Proszę o chwilę cierpliwości.");
+
+                // 1. Szuka użytkownika po jego ChatId z Telegrama
+                var telegramChatId = TelegramChatId.Create(chatId);
+                var user = await scopedUserService.GetByTelegramChatIdAsync(telegramChatId);
+
+                if (user == null)
+                {
+                    await _botClient.SendMessage(chatId, "Twój profil na Telegramie nie jest powiązany z żadnym kontem w systemie.");
+                    return;
+                }
+
+                // 2. Wywołuje dokładnie tę samą logikę biznesową (DDD) co zawsze
+                var consultationId = await scopedConsultationService.AskQuestionAsync(
+                    user.Id,
+                    messageText,
+                    user.ActiveConsultationId
+                );
+
+                // 3. Pobiera odpowiedź i źródła
+                var (answer, sources) = await scopedConsultationService.GetLatestAnswerAsync(consultationId);
+
+                // 4. Formuje wiadomość i wysyła do użytkownika
+                var responseText = $"{answer}\n\nŹródła:\n" + string.Join("\n", sources);
+                await _botClient.SendMessage(chatId, responseText);
+            }
+            catch (Exception ex)
+            {
+                // Loguje błąd w tle i powiadamia użytkownika
+                Console.WriteLine($"[Webhook Error]: {ex.Message}");
+                await _botClient.SendMessage(chatId, "Przepraszam, wystąpił problem techniczny po stronie serwera AI.");
+            }
+        });
+
+        // Zwraca status 200 OK natychmiast do Telegrama
+        return Ok();
     }
 
     // Było: [HttpPost("ask")]
