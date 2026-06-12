@@ -22,7 +22,7 @@ builder.Services.AddHttpClient<ILegalBrainService, LegalBrainServiceClient>(clie
     client.Timeout = TimeSpan.FromMinutes(5);
 
     // Dodanie User-Agent'a żeby zapora Rendera nie blokowała aplikacji jako bota
-    client.DefaultRequestHeaders.Add("User-Agent", "LegalLawBot-CsharpBackend/1.0");
+    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
 });
 
 // 3. Rejestracja Repozytorium (Prawdziwe - EF Core)
