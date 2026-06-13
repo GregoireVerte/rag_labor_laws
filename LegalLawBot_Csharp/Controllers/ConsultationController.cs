@@ -50,6 +50,16 @@ public class ConsultationController : ControllerBase
 
             try
             {
+                // PRZEDSKOCZEK: Lekki strzał GET, który zmusza Rendera do budzenia Pythona
+                using (var wakeUpClient = new HttpClient())
+                {
+                    wakeUpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...");
+                    // Odpala jako zadanie poboczne i nie czeka na odpowiedź (Fire-and-Forget)
+                    // Chodzi tylko o to, żeby zapora Rendera dostała sygnał że ktoś wchodzi na stronę i obudzi to kontener
+                    _ = wakeUpClient.GetAsync("https://rag-labor-laws-backend.onrender.com/");
+                }
+
+                // Informuje użytkownika na Telegramie
                 await _botClient.SendMessage(chatId, "Przeszukuję bazę wiedzy prawa pracy... 🔍 Proszę o chwilę cierpliwości.");
 
                 // 1. Szuka użytkownika po jego ChatId z Telegrama
