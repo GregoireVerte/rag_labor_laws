@@ -50,19 +50,29 @@ public class ConsultationController : ControllerBase
 
             try
             {
-                // PRZEDSKOCZEK: Lekki strzał GET, który zmusza Rendera do budzenia Pythona
-                using (var wakeUpClient = new HttpClient())
-                {
-                    wakeUpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...");
-                    // Odpala jako zadanie poboczne i nie czeka na odpowiedź (Fire-and-Forget)
-                    // Chodzi tylko o to, żeby zapora Rendera dostała sygnał że ktoś wchodzi na stronę i obudzi to kontener
-                    _ = wakeUpClient.GetAsync("https://rag-labor-laws-backend.onrender.com/");
-                }
-
-                // Informuje użytkownika na Telegramie
+                // Najpierw wysyła komunikat. Bot natychmiast odpowiada
                 await _botClient.SendMessage(chatId, "Przeszukuję bazę wiedzy prawa pracy... 🔍 Proszę o chwilę cierpliwości.");
 
-                // 1. Szuka użytkownika po jego ChatId z Telegrama
+                // Przedskoczek w bezpiecznym "izolatorze" try/catch
+                try
+                {
+                    using (var wakeUpClient = new HttpClient())
+                    {
+                        // Używa bezpiecznej metody zapisu nagłówka z TryAddWithoutValidation
+                        wakeUpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
+
+                        // Sygnał GET na publiczny adres - nie czeka na odpowiedź po prostu rzuca sygnał w backend Pythona żeby wstał
+                        _ = wakeUpClient.GetAsync("https://rag-labor-laws-backend.onrender.com/");
+                    }
+                }
+                catch (Exception wakeUpEx)
+                {
+                    // Jeśli przedskoczek zawiedzie tylko loguje to w konsoli. Nie wywala całej aplikacji
+                    Console.WriteLine($"[WakeUp Ping Ignored Error]: {wakeUpEx.Message}");
+                }
+
+                // Klasyczna logika biznesowa (pobieranie usera i wysyłanie pytania do publicznego API)
+                // Szuka użytkownika po jego ChatId z Telegrama
                 var telegramChatId = TelegramChatId.Create(chatId);
                 var user = await scopedUserService.GetByTelegramChatIdAsync(telegramChatId);
 
@@ -72,17 +82,17 @@ public class ConsultationController : ControllerBase
                     return;
                 }
 
-                // 2. Wywołuje dokładnie tę samą logikę biznesową (DDD) co zawsze
+                // Wywołuje dokładnie tę samą logikę biznesową (DDD) co zawsze
                 var consultationId = await scopedConsultationService.AskQuestionAsync(
                     user.Id,
                     messageText,
                     user.ActiveConsultationId
                 );
 
-                // 3. Pobiera odpowiedź i źródła
+                // Pobiera odpowiedź i źródła
                 var (answer, sources) = await scopedConsultationService.GetLatestAnswerAsync(consultationId);
 
-                // 4. Formuje wiadomość i wysyła do użytkownika
+                // Formuje wiadomość i wysyła do użytkownika
                 var responseText = $"{answer}\n\nŹródła:\n" + string.Join("\n", sources);
                 await _botClient.SendMessage(chatId, responseText);
             }

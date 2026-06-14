@@ -15,17 +15,15 @@ builder.Services.AddScoped<ConsultationService>();
 // 2. Konfiguracja połączenia z Pythonem na Renderze
 builder.Services.AddHttpClient<ILegalBrainService, LegalBrainServiceClient>(client =>
 {
-    // ADRES Z RENDERA
-    // client.BaseAddress = new Uri("https://rag-labor-laws-backend.onrender.com/");
-    // Zamiast adresu publicznego podajemy adres wewnętrzny z Rendera
-    // Bypassuje w ten sposób publiczny firewall i błędy 429
-    client.BaseAddress = new Uri("http://rag-labor-laws-backend:10000/");
+    // ADRES Z RENDERA (Publiczny bo darmowy Render blokuje ruch internal przychodzący)
+    client.BaseAddress = new Uri("https://rag-labor-laws-backend.onrender.com/");
 
     // Zwiększenie czasu do 5 minut, żeby przeżyć wybudzanie darmowego Rendera
     client.Timeout = TimeSpan.FromMinutes(5);
 
     // Dodanie User-Agent'a żeby zapora Rendera nie blokowała aplikacji jako bota
-    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
+    // TryAddWithoutValidation ignoruje rygorystyczne testy formatu .NET i przesyła czysty tekst
+    client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
 });
 
 // 3. Rejestracja Repozytorium (Prawdziwe - EF Core)
