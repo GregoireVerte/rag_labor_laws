@@ -51,24 +51,28 @@ public class ConsultationController : ControllerBase
             try
             {
                 // Najpierw wysyła komunikat. Bot natychmiast odpowiada
-                await _botClient.SendMessage(chatId, "Przeszukuję bazę wiedzy prawa pracy... 🔍 Proszę o chwilę cierpliwości.");
+                await _botClient.SendMessage(chatId, "Przeszukuję bazę wiedzy prawa pracy... 🔍 Proszę o chwilę cierpliwości. (Inicjalizacja serwera AI...)");
 
-                // Przedskoczek w bezpiecznym "izolatorze" try/catch
+                // Przedskoczek w bezpiecznym "izolatorze" try/catch ; z pełnym oczekiwaniem (AWAIT)
                 try
                 {
                     using (var wakeUpClient = new HttpClient())
                     {
+                        // Daje przedskoczkowi aż 3 minuty na czekanie aż darmowy Render postawi Pythona na nogi
+                        wakeUpClient.Timeout = TimeSpan.FromMinutes(3);
+
                         // Używa bezpiecznej metody zapisu nagłówka z TryAddWithoutValidation
                         wakeUpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
 
-                        // Sygnał GET na publiczny adres - nie czeka na odpowiedź po prostu rzuca sygnał w backend Pythona żeby wstał
-                        _ = wakeUpClient.GetAsync("https://rag-labor-laws-backend.onrender.com/");
+                        // Sygnał GET na publiczny adres - z użyciem AWAIT wątek w tle zatrzyma się w tym miejscu i poczeka (ok. 50-70 sekund),
+                        // aż Python w pełni się uruchomi i zwróci jakikolwiek kod (nawet 404 czy 200).
+                        await wakeUpClient.GetAsync("https://rag-labor-laws-backend.onrender.com/");
                     }
                 }
                 catch (Exception wakeUpEx)
                 {
                     // Jeśli przedskoczek zawiedzie tylko loguje to w konsoli. Nie wywala całej aplikacji
-                    Console.WriteLine($"[WakeUp Ping Ignored Error]: {wakeUpEx.Message}");
+                    Console.WriteLine($"[WakeUp Ping timeout or error]: {wakeUpEx.Message}");
                 }
 
                 // Klasyczna logika biznesowa (pobieranie usera i wysyłanie pytania do publicznego API)
