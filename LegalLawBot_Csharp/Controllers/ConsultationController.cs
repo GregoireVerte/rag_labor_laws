@@ -50,29 +50,57 @@ public class ConsultationController : ControllerBase
 
             try
             {
-                // Najpierw wysyła komunikat. Bot natychmiast odpowiada
-                await _botClient.SendMessage(chatId, "Przeszukuję bazę wiedzy prawa pracy... 🔍 Proszę o chwilę cierpliwości. (Inicjalizacja serwera AI...)");
+                // Najpierw wysyła komunikat. Telegram dostaje informację, Bot natychmiast odpowiada
+                await _botClient.SendMessage(chatId, "Przeszukuję bazę wiedzy prawa pracy... 🔍 Proszę o chwilę cierpliwości. (Inicjalizacja serwera AI, to może potrwać około minuty...)");
 
-                // Przedskoczek w bezpiecznym "izolatorze" try/catch ; z pełnym oczekiwaniem (AWAIT)
+                // Przedskoczek w bezpiecznym "izolatorze" try/catch ; z pełnym oczekiwaniem (AWAIT) – pętla sprawdzająca stan Pythona
                 try
                 {
                     using (var wakeUpClient = new HttpClient())
                     {
-                        // Daje przedskoczkowi aż 3 minuty na czekanie aż darmowy Render postawi Pythona na nogi
-                        wakeUpClient.Timeout = TimeSpan.FromMinutes(3);
+                        wakeUpClient.Timeout = TimeSpan.FromSeconds(10); // Krótki timeout na pojedynczy strzał
 
                         // Używa bezpiecznej metody zapisu nagłówka z TryAddWithoutValidation
                         wakeUpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
 
-                        // Sygnał GET na publiczny adres - z użyciem AWAIT wątek w tle zatrzyma się w tym miejscu i poczeka (ok. 50-70 sekund),
-                        // aż Python w pełni się uruchomi i zwróci jakikolwiek kod (nawet 404 czy 200).
-                        await wakeUpClient.GetAsync("https://rag-labor-laws-backend.onrender.com/");
+                        // Sygnał GET na publiczny adres - w pętli i z użyciem AWAIT
+
+                        bool pythonIsReady = false;
+                        int attempts = 0;
+
+                        // Próbuje maks 16 razy (16 * minimum 4 sekundy to minimum 64 sekund oczekiwania)
+                        while (!pythonIsReady && attempts < 16)
+                        {
+                            attempts++;
+                            try
+                            {
+                                var response = await wakeUpClient.GetAsync("https://rag-labor-laws-backend.onrender.com/");
+                                var mediaType = response.Content.Headers.ContentType?.MediaType;
+
+                                // Jeśli typ zawartości NIE JEST tekstowym HTML-em, oznacza to, że bramka Rendera 
+                                // przestała serwować ekran ładowania i dopuściła już do prawdziwego FastAPI (zwróciło JSON)
+                                if (mediaType != null && !mediaType.Contains("text/html"))
+                                {
+                                    pythonIsReady = true;
+                                }
+                                else
+                                {
+                                    // Serwer wciąż się budzi (Gdy Render zwraca ekran ładowania HTML) – czeka od 4 do 6 sekund przed kolejną próbą
+                                    await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(4000, 6001)));
+                                }
+                            }
+                            catch
+                            {
+                                // W razie błędów sieciowych serwera podczas wstawania kontenera również cierpliwie czeka
+                                await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(4000, 6001)));
+                            }
+                        }
                     }
                 }
                 catch (Exception wakeUpEx)
                 {
                     // Jeśli przedskoczek zawiedzie tylko loguje to w konsoli. Nie wywala całej aplikacji
-                    Console.WriteLine($"[WakeUp Ping timeout or error]: {wakeUpEx.Message}");
+                    Console.WriteLine($"[WakeUp Loop Critical Failure]: {wakeUpEx.Message}");
                 }
 
                 // Klasyczna logika biznesowa (pobieranie usera i wysyłanie pytania do publicznego API)
