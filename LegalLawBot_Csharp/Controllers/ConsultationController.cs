@@ -68,30 +68,33 @@ public class ConsultationController : ControllerBase
                         bool pythonIsReady = false;
                         int attempts = 0;
 
-                        // Próbuje maks 16 razy (16 * minimum 4 sekundy to minimum 64 sekund oczekiwania)
-                        while (!pythonIsReady && attempts < 16)
+                        // Próbuje maks 20 razy (20 * minimum 4 sekundy to minimum 80 sekund oczekiwania z jitter'em)
+                        while (!pythonIsReady && attempts < 20)
                         {
                             attempts++;
                             try
                             {
-                                var response = await wakeUpClient.GetAsync("https://rag-labor-laws-backend.onrender.com/");
+                                // uderza dokładnie w ścieżkę API zamiast w stronę główną
+                                var response = await wakeUpClient.GetAsync("https://rag-labor-laws-backend.onrender.com/api/v1/legal-brain/ask");
                                 var mediaType = response.Content.Headers.ContentType?.MediaType;
 
-                                // Jeśli typ zawartości NIE JEST tekstowym HTML-em, oznacza to, że bramka Rendera 
-                                // przestała serwować ekran ładowania i dopuściła już do prawdziwego FastAPI (zwróciło JSON)
-                                if (mediaType != null && !mediaType.Contains("text/html"))
+                                // Python działa tylko wtedy gdy bramka przepuściła ruch i odpowiedziało kodem FastAPI (zwracając JSON)
+                                // upewnia się że status kod nie jest maszynowym 429 od firewalla Rendera
+                                if (response.StatusCode != System.Net.HttpStatusCode.TooManyRequests &&
+                                    mediaType != null &&
+                                    mediaType.Contains("application/json"))
                                 {
                                     pythonIsReady = true;
                                 }
                                 else
                                 {
-                                    // Serwer wciąż się budzi (Gdy Render zwraca ekran ładowania HTML) – czeka od 4 do 6 sekund przed kolejną próbą
+                                    // Serwer wciąż się budzi (Gdy Render zwraca ekran ładowania i wciąż dostajemy HTML) lub Text/Plain (błąd 429) – czeka od 4 do 6 sekund przed kolejną próbą
                                     await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(4000, 6001)));
                                 }
                             }
                             catch
                             {
-                                // W razie błędów sieciowych serwera podczas wstawania kontenera również cierpliwie czeka
+                                // W razie błędów sieciowych serwera podczas wstawania kontenera również cierpliwie czeka losowo 4-6 sekund
                                 await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(4000, 6001)));
                             }
                         }
