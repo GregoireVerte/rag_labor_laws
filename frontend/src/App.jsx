@@ -177,6 +177,18 @@ function App() {
 
         <div className="chat-window">
           <div className="messages-container">
+            {/* Ekran powitalny (Empty State) gdy nie ma jeszcze wiadomości */}
+            {messages.length === 0 && !loading && (
+              <div className="chat-empty-state">
+                <div className="empty-icon">⚖️</div>
+                <h2>W czym mogę Ci dzisiaj pomóc?</h2>
+                <p>
+                  Zadaj pytanie dotyczące Kodeksu Pracy, np. o urlopy, okres
+                  wypowiedzenia czy umowy o pracę.
+                </p>
+              </div>
+            )}
+
             {messages.map((msg, index) => (
               <div key={index} className={`message-bubble ${msg.role}`}>
                 <div className="message-content">{msg.content || msg.text}</div>

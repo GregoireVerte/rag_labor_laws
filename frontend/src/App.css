@@ -259,3 +259,45 @@ body {
   opacity: 1;
   transform: scale(1.1);
 }
+
+/* Style dla ekranu powitalnego bota */
+.chat-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin: auto;
+  max-width: 400px;
+  color: #7f8c8d;
+  padding: 20px;
+}
+
+.empty-icon {
+  font-size: 3.5rem;
+  margin-bottom: 15px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.chat-empty-state h2 {
+  color: var(--primary-color);
+  margin-bottom: 10px;
+  font-size: 1.4rem;
+}
+
+.chat-empty-state p {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
