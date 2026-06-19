@@ -228,13 +228,25 @@ function App() {
               onKeyDown={(e) =>
                 e.key === "Enter" &&
                 !e.shiftKey &&
+                question.length <= 1000 && // enter nie wyśle jeśli za długie
                 (e.preventDefault(), askAi())
               }
               placeholder="Zadaj pytanie..."
             />
-            <button className="send-btn" onClick={askAi} disabled={loading}>
+            <button
+              className="send-btn"
+              onClick={askAi}
+              disabled={loading || !question.trim() || question.length > 1000}
+            >
               Wyślij
             </button>
+          </div>
+
+          {/* Licznik znaków informujący użytkownika o limicie */}
+          <div
+            className={`char-counter ${question.length > 1000 ? "exceeded" : ""}`}
+          >
+            {question.length} / 1000 znaków
           </div>
         </div>
       </main>

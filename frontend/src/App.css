@@ -301,3 +301,19 @@ body {
     transform: translateY(0px);
   }
 }
+
+/* Styl dla licznika znaków */
+.char-counter {
+  font-size: 12px;
+  color: #7f8c8d;
+  text-align: right;
+  margin-top: 5px;
+  padding-right: 5px;
+  transition: color 0.2s;
+}
+
+/* Kolor ostrzegawczy po przekroczeniu limitu znaków */
+.char-counter.exceeded {
+  color: #e74c3c;
+  font-weight: bold;
+}
