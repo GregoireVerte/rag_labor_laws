@@ -22,6 +22,10 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState(getOrCreateSessionId());
   const messagesEndRef = useRef(null);
+  const [user, setUser] = useState({
+    name: "Grzegorz (Demo)",
+    isAuthenticated: false,
+  });
 
   // 1. Pobieranie listy wszystkich sesji z bazy
   const fetchSessions = async () => {
@@ -166,6 +170,34 @@ function App() {
               </button>
             </div>
           ))}
+        </div>
+        {/* PROFIL UŻYTKOWNIKA (PRZYGOTOWANIE POD AUTH) */}
+        <div
+          className="sidebar-footer"
+          style={{
+            marginTop: "auto",
+            padding: "15px 0 0 0",
+            borderTop: "1px solid #333",
+          }}
+        >
+          <div
+            className="user-profile"
+            style={{ display: "flex", alignItems: "center", gap: "10px" }}
+          >
+            <span style={{ fontSize: "20px" }}>👤</span>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span
+                style={{ fontWeight: "bold", fontSize: "14px", color: "#fff" }}
+              >
+                {user.name}
+              </span>
+              <span style={{ fontSize: "12px", color: "#aaa" }}>
+                {user.isAuthenticated
+                  ? "Zalogowany"
+                  : "Kliknij, aby się zalogować"}
+              </span>
+            </div>
+          </div>
         </div>
       </aside>
 
