@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "./App.css";
+import { supabase } from "./supabaseClient";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -22,10 +23,59 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState(getOrCreateSessionId());
   const messagesEndRef = useRef(null);
-  const [user, setUser] = useState({
-    name: "Grzegorz (Demo)",
-    isAuthenticated: false,
-  });
+  // Stan użytkownika - domyślnie pusty (null), nikt nie jest zalogowany
+  const [user, setUser] = useState(null);
+  // Stan sterujący tym, czy pokazuje formularz logowania ('login'), czy rejestracji ('register')
+  const [authMode, setAuthMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState(""); // tu zapisze ewentualne komunikaty o błędach (np. złe hasło)
+
+  // Funkcja obsługująca rejestrację nowego konta
+  const handleRegister = async (e) => {
+    e.preventDefault(); // Zapobiega przeładowaniu strony po wysłaniu formularza
+    setAuthError("");
+    setLoading(true);
+
+    // Wysyła dane do Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+    });
+
+    if (error) {
+      // Jeśli Supabase zwróci błąd (np. słabe hasło), zapisuje go w stanie
+      setAuthError(error.message);
+    } else if (data?.user) {
+      // Jeśli wszystko poszło ok zapisuje użytkownika w stanie aplikacji
+      setUser(data.user);
+      setEmail("");
+      setPassword("");
+    }
+    setLoading(false);
+  };
+
+  // Funkcja obsługująca logowanie na istniejące konto
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setAuthError("");
+    setLoading(true);
+
+    // Prosi Supabase o zalogowanie za pomocą maila i hasła
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+
+    if (error) {
+      setAuthError(error.message); // np. "Invalid login credentials"
+    } else if (data?.user) {
+      setUser(data.user);
+      setEmail("");
+      setPassword("");
+    }
+    setLoading(false);
+  };
 
   // 1. Pobieranie listy wszystkich sesji z bazy
   const fetchSessions = async () => {
@@ -171,7 +221,7 @@ function App() {
             </div>
           ))}
         </div>
-        {/* PROFIL UŻYTKOWNIKA (PRZYGOTOWANIE POD AUTH) */}
+        {/* PROFIL UŻYTKOWNIKA (BEZPIECZNA WERSJA) */}
         <div
           className="sidebar-footer"
           style={{
@@ -189,12 +239,10 @@ function App() {
               <span
                 style={{ fontWeight: "bold", fontSize: "14px", color: "#fff" }}
               >
-                {user.name}
+                {user ? user.email : "Gość"}
               </span>
               <span style={{ fontSize: "12px", color: "#aaa" }}>
-                {user.isAuthenticated
-                  ? "Zalogowany"
-                  : "Kliknij, aby się zalogować"}
+                {user ? "Zalogowany" : "Niezalogowany"}
               </span>
             </div>
           </div>
