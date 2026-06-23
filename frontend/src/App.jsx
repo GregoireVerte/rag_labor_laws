@@ -77,6 +77,24 @@ function App() {
     setLoading(false);
   };
 
+  // Funkcja obsługująca wylogowanie użytkownika
+  const handleLogout = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error("Błąd podczas wylogowywania:", error.message);
+    } else {
+      // Czyszczenie całego stanu aplikacji do zera
+      setUser(null);
+      setMessages([]);
+      setSessions([]);
+      setSessionId(null);
+      localStorage.removeItem("chat_session_id");
+    }
+    setLoading(false);
+  };
+
   // 1. Pobieranie listy wszystkich sesji z bazy
   const fetchSessions = async () => {
     try {
@@ -120,6 +138,50 @@ function App() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
+
+  // Mechanizm automatycznego wylogowania po 15 minutach bezczynności
+  useEffect(() => {
+    // Jeśli nikt nie jest zalogowany, nie uruchamia stopera
+    if (!user) return;
+
+    let timeoutId;
+    const INACTIVITY_TIME = 15 * 60 * 1000; // 15 minut (w milisekundach)
+
+    const resetTimer = () => {
+      // Jeśli stoper już odliczał, kasuje go i zaczyna odliczanie od nowa
+      if (timeoutId) clearTimeout(timeoutId);
+
+      timeoutId = setTimeout(() => {
+        alert("Zostałeś automatycznie wylogowany z powodu bezczynności.");
+        handleLogout();
+      }, INACTIVITY_TIME);
+    };
+
+    // Lista zdarzeń, które uznaje za "aktywność" użytkownika
+    const activityEvents = [
+      "mousemove",
+      "keydown",
+      "mousedown",
+      "scroll",
+      "touchstart",
+    ];
+
+    // Rejestruje nasłuchiwanie na każde z tych zdarzeń w oknie przeglądarki
+    activityEvents.forEach((event) => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    // Uruchamia stoper po raz pierwszy przy wejściu do aplikacji
+    resetTimer();
+
+    // Funkcja czyszcząca (cleanup) - usuwa nasłuchiwanie, gdy użytkownik się wyloguje
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      activityEvents.forEach((event) => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [user]); // Ten efekt uruchomi się na nowo za każdym razem, gdy zmieni się stan 'user'
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
