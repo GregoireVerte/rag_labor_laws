@@ -256,6 +256,158 @@ function App() {
     }
   };
 
+  // Jeśli użytkownik nie jest zalogowany, przerywa i pokazuje ekran logowania/rejestracji
+  if (!user) {
+    return (
+      <div
+        className="auth-container"
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          backgroundColor: "#1e1e1e",
+          color: "#fff",
+        }}
+      >
+        <div
+          className="auth-box"
+          style={{
+            background: "#2a2a2a",
+            padding: "30px",
+            borderRadius: "8px",
+            width: "100%",
+            maxWidth: "400px",
+            boxShadow: "0 4px 15px rgba(0,0,0,0.5)",
+          }}
+        >
+          <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
+            {authMode === "login"
+              ? "⚖️ Zaloguj się do Asystenta Prawa Pracy"
+              : "📝 Stwórz konto"}
+          </h2>
+
+          <form
+            onSubmit={authMode === "login" ? handleLogin : handleRegister}
+            style={{ display: "flex", flexDirection: "column", gap: "15px" }}
+          >
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "5px" }}
+            >
+              <label style={{ fontSize: "14px", color: "#aaa" }}>E-mail:</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                style={{
+                  padding: "10px",
+                  borderRadius: "4px",
+                  border: "1px solid #444",
+                  backgroundColor: "#333",
+                  color: "#fff",
+                }}
+              />
+            </div>
+
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "5px" }}
+            >
+              <label style={{ fontSize: "14px", color: "#aaa" }}>Hasło:</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                style={{
+                  padding: "10px",
+                  borderRadius: "4px",
+                  border: "1px solid #444",
+                  backgroundColor: "#333",
+                  color: "#fff",
+                }}
+              />
+            </div>
+
+            {authError && (
+              <div
+                className="auth-error"
+                style={{
+                  color: "#ff6b6b",
+                  fontSize: "14px",
+                  textAlign: "center",
+                }}
+              >
+                ⚠️ {authError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                padding: "12px",
+                borderRadius: "4px",
+                border: "none",
+                backgroundColor: "#0066cc",
+                color: "#fff",
+                fontWeight: "bold",
+                cursor: "pointer",
+                marginTop: "10px",
+              }}
+            >
+              {loading
+                ? "Przetwarzanie..."
+                : authMode === "login"
+                  ? "Zaloguj się"
+                  : "Zarejestruj się"}
+            </button>
+          </form>
+
+          <div
+            style={{ textAlign: "center", marginTop: "20px", fontSize: "14px" }}
+          >
+            {authMode === "login" ? (
+              <p>
+                Nie masz konta?{" "}
+                <span
+                  onClick={() => {
+                    setAuthMode("register");
+                    setAuthError("");
+                  }}
+                  style={{
+                    color: "#0088ff",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Zarejestruj się
+                </span>
+              </p>
+            ) : (
+              <p>
+                Masz już konto?{" "}
+                <span
+                  onClick={() => {
+                    setAuthMode("login");
+                    setAuthError("");
+                  }}
+                  style={{
+                    color: "#0088ff",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Zaloguj się
+                </span>
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="layout">
       {/* SIDEBAR */}
@@ -283,7 +435,7 @@ function App() {
             </div>
           ))}
         </div>
-        {/* PROFIL UŻYTKOWNIKA (BEZPIECZNA WERSJA) */}
+        {/* PROFIL UŻYTKOWNIKA (BEZPIECZNA WERSJA) Z PRZYCISKIEM WYLOGOWANIA */}
         <div
           className="sidebar-footer"
           style={{
@@ -297,15 +449,63 @@ function App() {
             style={{ display: "flex", alignItems: "center", gap: "10px" }}
           >
             <span style={{ fontSize: "20px" }}>👤</span>
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                width: "100%",
+              }}
+            >
               <span
-                style={{ fontWeight: "bold", fontSize: "14px", color: "#fff" }}
+                style={{
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  color: "#fff",
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                }}
               >
                 {user ? user.email : "Gość"}
               </span>
-              <span style={{ fontSize: "12px", color: "#aaa" }}>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "#aaa",
+                  marginBottom: user ? "8px" : "0",
+                }}
+              >
                 {user ? "Zalogowany" : "Niezalogowany"}
               </span>
+
+              {/* Jeśli użytkownik jest zalogowany, pokaże przycisk wylogowania */}
+              {user && (
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: "4px",
+                    border: "1px solid #ff4d4d",
+                    backgroundColor: "transparent",
+                    color: "#ff4d4d",
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    textAlign: "center",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.backgroundColor = "#ff4d4d";
+                    e.target.style.color = "#fff";
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.backgroundColor = "transparent";
+                    e.target.style.color = "#ff4d4d";
+                  }}
+                >
+                  🚪 Wyloguj się
+                </button>
+              )}
             </div>
           </div>
         </div>
