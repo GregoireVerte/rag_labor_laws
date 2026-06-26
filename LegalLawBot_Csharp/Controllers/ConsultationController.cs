@@ -149,11 +149,8 @@ public class ConsultationController : ControllerBase
     {
         try
         {
-            // Tworzy tymczasowe ID użytkownika (do zastąpienia przez ID zalogowanej osoby)
-            // var userId = UserId.Create(Guid.NewGuid());
-
-            // Używa tego samego stałego ID co w GetAll, żeby widzieć wyniki w testach
-            var userId = UserId.Create(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+            // dynamiczne pobieranie ID przesłanego z frontendu:
+            var userId = UserId.Create(request.UserId);
 
             // Weryfikacja tożsamości w bazie danych
             var user = await _userRepository.GetByIdAsync(userId);
@@ -184,19 +181,19 @@ public class ConsultationController : ControllerBase
     }
     // Było: [HttpGet]
     [HttpGet("/sessions")]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid userId)
     {
-        // Na razie używa stałego ID (później do zastąpienia Admin ID)
-        var userId = UserId.Create(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        // wcześniejszy sztywny GUID Admina został zastąpiony parametrem z zapytania
+        var domainUserId = UserId.Create(userId);
 
         // Weryfikacja tożsamości w bazie danych przed pobraniem sesji
-        var user = await _userRepository.GetByIdAsync(userId);
+        var user = await _userRepository.GetByIdAsync(domainUserId);
         if (user == null)
         {
             return Unauthorized("Brak uprawnień do przeglądania tej listy sesji.");
         }
 
-        var sessions = await _consultationService.GetUserConsultationsAsync(userId);
+        var sessions = await _consultationService.GetUserConsultationsAsync(domainUserId);
         return Ok(sessions);
     }
 
@@ -243,8 +240,8 @@ public class ConsultationController : ControllerBase
     {
         try
         {
-            // 1. Pobiera stałe ID Admina z bazy danych
-            var adminId = UserId.Create(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+            // 1. Pobiera dynamiczne ID Admina przekazane w body
+            var adminId = UserId.Create(request.AdminId);
             var user = await _userRepository.GetByIdAsync(adminId);
 
             if (user == null)
@@ -276,8 +273,12 @@ public class ConsultationController : ControllerBase
 // Użycie JsonPropertyName, żeby .NET wiedział, że "session_id" z Reacta to "ConsultationId"
 public record AskRequest(
     string Question,
+    [property: System.Text.Json.Serialization.JsonPropertyName("user_id")] Guid UserId,
     [property: System.Text.Json.Serialization.JsonPropertyName("session_id")] Guid? ConsultationId = null
 );
 
 public record UpdateTitleRequest(string Title);
-public record LinkTelegramRequest(long ChatId);
+public record LinkTelegramRequest(
+    long ChatId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("user_id")] Guid AdminId
+);
