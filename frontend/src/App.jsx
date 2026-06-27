@@ -95,10 +95,13 @@ function App() {
     setLoading(false);
   };
 
-  // 1. Pobieranie listy wszystkich sesji z bazy
+  // 1. Pobieranie listy wszystkich sesji z bazy (Wersja Dynamiczna)
   const fetchSessions = async () => {
+    if (!user) return; // Zabezpieczenie: nie pobieraj jeśli nikt nie jest zalogowany
     try {
-      const response = await axios.get(`${API_BASE_URL}/sessions`);
+      const response = await axios.get(
+        `${API_BASE_URL}/sessions?userId=${user.id}`,
+      );
       setSessions(response.data);
     } catch (error) {
       console.error("Błąd pobierania sesji:", error);
@@ -127,13 +130,15 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Start przy uruchomieniu: pobiera sesje i historię aktualnej sesji
+  // Start przy uruchomieniu lub zmianie użytkownika: pobiera sesje i historię
   useEffect(() => {
-    fetchSessions();
-    if (sessionId) {
-      loadHistory(sessionId);
+    if (user) {
+      fetchSessions();
+      if (sessionId) {
+        loadHistory(sessionId);
+      }
     }
-  }, []); // tylko przy montowaniu
+  }, [user]); // Zmiana tablicy zależności z [] na [user]
 
   useEffect(() => {
     scrollToBottom();
@@ -198,10 +203,11 @@ function App() {
 
     setLoading(true);
     try {
-      // Wysyła zapytanie do C# i czeka na odpowiedź
+      // Wysyła zapytanie do C# dorzucając unikalne ID zalogowanego użytkownika i czeka na odpowiedź
       const response = await axios.post(`${API_BASE_URL}/ask`, {
         question: userQuery,
         session_id: sessionId,
+        user_id: user.id,
       });
 
       // Mapuje odpowiedź od asystenta
