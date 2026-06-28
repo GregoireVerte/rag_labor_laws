@@ -79,7 +79,6 @@ function App() {
 
   // Funkcja obsługująca wylogowanie użytkownika
   const handleLogout = async () => {
-    setLoading(true);
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -92,7 +91,6 @@ function App() {
       setSessionId(null);
       localStorage.removeItem("chat_session_id");
     }
-    setLoading(false);
   };
 
   // 1. Pobieranie listy wszystkich sesji z bazy (Wersja Dynamiczna)
