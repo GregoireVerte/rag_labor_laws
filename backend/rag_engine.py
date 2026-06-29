@@ -1,4 +1,6 @@
 import os
+import time
+import random
 from dotenv import load_dotenv
 from groq import Groq
 from qdrant_client import QdrantClient
@@ -22,21 +24,32 @@ class LaborLawRAG:
         self.rerank_url = "https://router.huggingface.co/hf-inference/models/BAAI/bge-reranker-v2-m3"
 
     def get_context(self, query, limit=50):
+        dense_vec = None
+        
         # 1. Generowanie wektora przez utils - HF API (Dense)
         #### Model E5 wymaga przedrostka 'query: ' lub 'passage: ' dla pytań
-        hf_resp = get_embeddings(query, is_query=True)
+        #### Generowanie wektora z mechanizmem Retry (3 próby w razie Timeoutu)
+        for attempt in range(3):
+            try:
+                hf_resp = get_embeddings(query, is_query=True)
 
-        ### HF API dla feature-extraction zwraca zazwyczaj [[wektor]]
-        ### HF często zwraca listę list [[...]] -> wyciąganie pierwszego wektora
-        if isinstance(hf_resp, list) and isinstance(hf_resp[0], list):
-            dense_vec = hf_resp[0]
-        elif isinstance(hf_resp, list):
-            dense_vec = hf_resp
-        else:
-            raise Exception(f"Nieoczekiwany format wektora z HF: {hf_resp}")
+                ### HF API dla feature-extraction zwraca zazwyczaj [[wektor]]
+                ### HF często zwraca listę list [[...]] -> wyciąganie pierwszego wektora
+                if isinstance(hf_resp, list) and isinstance(hf_resp[0], list):
+                    dense_vec = hf_resp[0]
+                elif isinstance(hf_resp, list):
+                    dense_vec = hf_resp
+                else:
+                    raise Exception(f"Nieoczekiwany format wektora z HF: {hf_resp}")
+                break  # Sukces - przerywa pętlę retry
+            except Exception as e:
+                print(f"[Embedding Próba {attempt+1}/3 Nieudana]: {e}")
+                if attempt == 2:  ### Ostatnia próba zawiodła
+                    raise e
+                time.sleep(random.uniform(2, 4))  ## Poczeka 2 - 4 sekundy przed kolejną próbą
 
 
-        # 2. Wyszukiwanie w Qdrant (Tylko Dense bo Sparse przez API jest trudne)
+        # 2. Wyszukiwanie w Qdrant Cloud (Tylko Dense bo Sparse przez API jest trudne)
         results = self.client.search(
             collection_name=self.collection_name,
             query_vector=dense_vec,
@@ -45,7 +58,7 @@ class LaborLawRAG:
         )
 
 
-        # 3. Reranking (Cross-Encoder) przez HF API
+        # 3. Reranking (Cross-Encoder) przez HF API - z automatycznym Retry i bezpiecznym parsowaniem struktury
         if results:
             #### Poprawny format dla BGE Reranker na HF Inference API
             payload = {
@@ -54,22 +67,43 @@ class LaborLawRAG:
                     for res in results
                 ]
             }
-            ## użycie wspólnej funkcji z utils
-            rerank_resp = query_hf_api(self.rerank_url, payload)
 
-            ## HF zwraca [{'label': 'LABEL_0', 'score': 0.99}, ...]
-            ### sortowanie wyników Qdrant na podstawie wyników z HF
-            try:
-                # Mapuje wyniki: HF zwraca wyniki w tej samej kolejności co wysłane pary
-                scored_results = []
-                for i, r in enumerate(rerank_resp):
-                    score = r.get('score', 0)
-                    scored_results.append((score, results[i]))
+            rerank_resp = None
+            for attempt in range(3):
+                try:
+                    rerank_resp = query_hf_api(self.rerank_url, payload) ## użycie wspólnej funkcji z utils
+                    break
+                except Exception as e:
+                    print(f"[Reranker Próba {attempt+1}/3 Nieudana]: {e}")
+                    if attempt < 2:
+                        time.sleep(random.uniform(2, 4))
 
-                scored_results.sort(key=lambda x: x[0], reverse=True)
-                results = [item[1] for item in scored_results]
-            except Exception as e:
-                print(f"Reranking nieudany, używam kolejności z Qdrant. Błąd: {e}")
+            if rerank_resp and isinstance(rerank_resp, list):
+                try:
+                    ### HF zwraca [{'label': 'LABEL_0', 'score': 0.99}, ...]
+                    ### sortowanie wyników Qdrant na podstawie wyników z HF
+                    ### Mapuje wyniki: HF zwraca wyniki w tej samej kolejności co wysłane pary
+                    scored_results = []
+                    for i, r in enumerate(rerank_resp):
+                        ## Bezpieczne wyciąganie score niezależnie czy HF zwrócił słownik, czy listę słowników
+                        if isinstance(r, dict):
+                            score = r.get('score', 0)
+                        elif isinstance(r, list) and len(r) > 0 and isinstance(r[0], dict):
+                            score = r[0].get('score', 0)
+                        elif isinstance(r, (int, float)):
+                            score = r
+                        else:
+                            score = 0
+
+                        scored_results.append((score, results[i]))
+
+                    scored_results.sort(key=lambda x: x[0], reverse=True)
+                    results = [item[1] for item in scored_results]
+                    print("--- RERANKING ZAKOŃCZONY SUKCESEM ---")
+                except Exception as e:
+                    print(f"Błąd parsowania odpowiedzi rerankera, używam kolejności z Qdrant. Szczegóły: {e}")
+            else:
+                print("Reranker zwrócił pustą odpowiedź lub błąd. Używam kolejności z Qdrant.")
 
 
         # 4. Formatowanie wyników - Lejek (Top 15)
