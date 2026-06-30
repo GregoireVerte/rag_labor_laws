@@ -548,15 +548,31 @@ function App() {
                   📋
                 </button>
 
-                {msg.role === "assistant" && msg.sources?.length > 0 && (
-                  <div className="message-sources">
-                    {msg.sources.map((src) => (
-                      <span key={src} className="source-tag">
-                        {src}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                {msg.role === "assistant" &&
+                  msg.sources &&
+                  (() => {
+                    // Normalizacja: jeśli to string z bazy, rozbij go po przecinkach. Jeśli tablica - zostaw.
+                    const parsedSources = Array.isArray(msg.sources)
+                      ? msg.sources
+                      : typeof msg.sources === "string"
+                        ? msg.sources
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                        : [];
+
+                    if (parsedSources.length === 0) return null;
+
+                    return (
+                      <div className="message-sources">
+                        {parsedSources.map((src) => (
+                          <span key={src} className="source-tag">
+                            {src}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
               </div>
             ))}
             {loading && (

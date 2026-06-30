@@ -60,10 +60,10 @@ class LaborLawRAG:
 
         # 3. Reranking (Cross-Encoder) przez HF API - z automatycznym Retry i bezpiecznym parsowaniem struktury
         if results:
-            #### Poprawny format dla BGE Reranker na HF Inference API
+            #### format standardowy list-of-lists dla Hugging Face Inference API
             payload = {
                 "inputs": [
-                    {"text": query, "text_pair": res.payload.get('content', '')}
+                    [query, res.payload.get('content', '')]
                     for res in results
                 ]
             }
@@ -78,7 +78,8 @@ class LaborLawRAG:
                     if attempt < 2:
                         time.sleep(random.uniform(2, 4))
 
-            if rerank_resp and isinstance(rerank_resp, list):
+            ## ZABEZPIECZENIE: sprawdza czy liczba punktów z HF zgadza się z Qdrant
+            if rerank_resp and isinstance(rerank_resp, list) and len(rerank_resp) == len(results):
                 try:
                     ### HF zwraca [{'label': 'LABEL_0', 'score': 0.99}, ...]
                     ### sortowanie wyników Qdrant na podstawie wyników z HF
@@ -103,7 +104,7 @@ class LaborLawRAG:
                 except Exception as e:
                     print(f"Błąd parsowania odpowiedzi rerankera, używam kolejności z Qdrant. Szczegóły: {e}")
             else:
-                print("Reranker zwrócił pustą odpowiedź lub błąd. Używam kolejności z Qdrant.")
+                print("--- [WARNING] Reranker zwrócił niezgodną liczbę wyników. Bezpieczny fallback do kolejności z Qdrant! ---")
 
 
         # 4. Formatowanie wyników - Lejek (Top 15)
