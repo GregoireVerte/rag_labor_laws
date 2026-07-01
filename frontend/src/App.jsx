@@ -186,8 +186,28 @@ function App() {
     };
   }, [user]); // Ten efekt uruchomi się na nowo za każdym razem, gdy zmieni się stan 'user'
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = (msg) => {
+    // Pobiera treść wiadomości (obsługuje format z historii oraz nowy)
+    const text = msg.content || msg.text || "";
+
+    // Pobiera źródła (obsługuje małą literę z API i wielką z bazy danych .NET)
+    const rawSources = msg.sources || msg.Sources;
+    const parsedSources = Array.isArray(rawSources)
+      ? rawSources
+      : typeof rawSources === "string"
+        ? rawSources
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+
+    // Jeśli są źródła formatuje je i dokleja do tekstu
+    const sourcesText =
+      parsedSources.length > 0
+        ? `\n\n[Podstawa prawna: ${parsedSources.join(", ")}]`
+        : "";
+
+    navigator.clipboard.writeText(text + sourcesText);
     alert("Skopiowano do schowka!");
   };
 
@@ -536,26 +556,30 @@ function App() {
             )}
 
             {messages.map((msg, index) => (
-              <div key={index} className={`message-bubble ${msg.role}`}>
+              <div
+                key={index}
+                className={`message-bubble ${msg.role || msg.Role}`}
+              >
                 <div className="message-content">{msg.content || msg.text}</div>
 
-                {/* Przycisk kopiowania dla każdej wiadomości chatu (User i AI) */}
+                {/* Przycisk kopiowania dla każdej wiadomości chatu (User i AI) - przekazuje cały obiekt wiadomości*/}
                 <button
                   className="copy-btn"
-                  onClick={() => copyToClipboard(msg.content || msg.text)}
-                  title="Kopiuj treść"
+                  onClick={() => copyToClipboard(msg)}
+                  title="Kopiuj treść ze źródłami"
                 >
                   📋
                 </button>
 
-                {msg.role === "assistant" &&
-                  msg.sources &&
+                {/* Inteligentne wyświetlanie źródeł (odporne na wielkość liter z .NET) */}
+                {(msg.role === "assistant" || msg.Role === "assistant") &&
                   (() => {
+                    const rawSources = msg.sources || msg.Sources;
                     // Normalizacja: jeśli to string z bazy, rozbij go po przecinkach. Jeśli tablica - zostaw.
-                    const parsedSources = Array.isArray(msg.sources)
-                      ? msg.sources
-                      : typeof msg.sources === "string"
-                        ? msg.sources
+                    const parsedSources = Array.isArray(rawSources)
+                      ? rawSources
+                      : typeof rawSources === "string"
+                        ? rawSources
                             .split(",")
                             .map((s) => s.trim())
                             .filter(Boolean)
