@@ -436,7 +436,11 @@ function App() {
     <div className="layout">
       {/* SIDEBAR */}
       <aside className="sidebar">
-        <button onClick={startNewChat} className="new-chat-btn">
+        <button
+          onClick={startNewChat}
+          className="new-chat-btn"
+          disabled={loading}
+        >
           + Nowy wątek
         </button>
         <div className="sessions-list">
@@ -444,7 +448,11 @@ function App() {
             <div
               key={s.id}
               className={`session-item ${s.id === sessionId ? "active" : ""}`}
-              onClick={() => loadHistory(s.id)}
+              onClick={() => !loading && loadHistory(s.id)}
+              style={{
+                cursor: loading ? "not-allowed" : "pointer",
+                opacity: loading ? 0.6 : 1,
+              }}
             >
               <span className="session-icon">💬</span>
               <span className="session-title">{s.title}</span>
