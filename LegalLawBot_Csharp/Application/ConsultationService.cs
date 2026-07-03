@@ -88,7 +88,8 @@ public class ConsultationService
             .OrderBy(m => m.CreatedAt) // Układa wiadomości od najstarszej do najnowszej
             .Select(m => new ChatMessageDto(
                 m.Role.ToString().ToLower(),
-                m.Content
+                m.Content,
+                m.Sources.Select(s => s.Value).ToList()
             )).ToList();
 
         return new ConsultationDetailsDto(consultation.Id, consultation.CreatedAt, history);

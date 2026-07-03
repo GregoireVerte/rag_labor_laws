@@ -1,6 +1,6 @@
 ﻿namespace LegalLawBot_Csharp.Domain;
 
-public record ChatMessageDto(string role, string content);
+public record ChatMessageDto(string role, string content, List<string>? sources = null);
 
 public interface ILegalBrainService
 {
