@@ -216,7 +216,8 @@ public class ConsultationController : ControllerBase
 
         return Ok(new { Message = "Konsultacja została pomyślnie usunięta." });
     }
-    [HttpPatch("{id}/title")]
+    // Było: [HttpPatch("{id}/title")] // Zmiana na spójną ścieżkę bezwzględną:
+    [HttpPatch("/sessions/{id}/title")]
     public async Task<IActionResult> UpdateTitle(Guid id, [FromBody] UpdateTitleRequest request)
     {
         try

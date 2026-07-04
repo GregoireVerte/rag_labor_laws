@@ -30,6 +30,9 @@ function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState(""); // tu zapisze ewentualne komunikaty o błędach (np. złe hasło)
+  // Stany do obsługi edycji tytułu sesji w Sidebarze
+  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [editTitleText, setEditTitleText] = useState("");
 
   // Funkcja obsługująca rejestrację nowego konta
   const handleRegister = async (e) => {
@@ -280,6 +283,28 @@ function App() {
     }
   };
 
+  const handleUpdateTitle = async (id, newTitle) => {
+    if (!newTitle.trim()) {
+      setEditingSessionId(null);
+      return;
+    }
+    try {
+      // Strzał PATCH do zabezpieczonej bazy C#
+      await axios.patch(`${API_BASE_URL}/sessions/${id}/title`, {
+        title: newTitle,
+      });
+
+      // Aktualizuje lokalny stan, żeby Sidebar od razu pokazał nowy tytuł bez przeładowania strony
+      setSessions((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, title: newTitle } : s)),
+      );
+      setEditingSessionId(null);
+    } catch (error) {
+      console.error("Błąd podczas zmiany tytułu sesji:", error);
+      setEditingSessionId(null);
+    }
+  };
+
   // Jeśli użytkownik nie jest zalogowany, przerywa i pokazuje ekran logowania/rejestracji
   if (!user) {
     return (
@@ -455,7 +480,42 @@ function App() {
               }}
             >
               <span className="session-icon">💬</span>
-              <span className="session-title">{s.title}</span>
+              {editingSessionId === s.id ? (
+                <input
+                  type="text"
+                  value={editTitleText}
+                  onChange={(e) => setEditTitleText(e.target.value)}
+                  onBlur={() => handleUpdateTitle(s.id, editTitleText)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter")
+                      handleUpdateTitle(s.id, editTitleText);
+                    if (e.key === "Escape") setEditingSessionId(null);
+                  }}
+                  autoFocus
+                  style={{
+                    background: "#333",
+                    border: "1px solid #0066cc",
+                    color: "#fff",
+                    borderRadius: "4px",
+                    padding: "2px 5px",
+                    width: "65%",
+                    fontSize: "14px",
+                  }}
+                />
+              ) : (
+                <span
+                  className="session-title"
+                  onDoubleClick={() => {
+                    if (!loading) {
+                      setEditingSessionId(s.id);
+                      setEditTitleText(s.title);
+                    }
+                  }}
+                  title="Kliknij dwukrotnie, aby zmienić nazwę"
+                >
+                  {s.title}
+                </span>
+              )}
 
               {/* Przycisk usuwania */}
               <button
