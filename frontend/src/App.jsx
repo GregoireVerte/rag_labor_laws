@@ -33,6 +33,8 @@ function App() {
   // Stany do obsługi edycji tytułu sesji w Sidebarze
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [editTitleText, setEditTitleText] = useState("");
+  // Stan do obsługi zwijania/rozwijania paska bocznego
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   // Funkcja obsługująca rejestrację nowego konta
   const handleRegister = async (e) => {
@@ -459,8 +461,11 @@ function App() {
 
   return (
     <div className="layout">
-      {/* SIDEBAR */}
-      <aside className="sidebar">
+      {/* SIDEBAR - sterowany stanem isSidebarVisible */}
+      <aside
+        className="sidebar"
+        style={{ display: isSidebarVisible ? "flex" : "none" }}
+      >
         <button
           onClick={startNewChat}
           className="new-chat-btn"
@@ -605,7 +610,32 @@ function App() {
 
       {/* GŁÓWNE OKNO CZATU */}
       <main className="chat-main">
-        <header>
+        <header style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+          {/* Przycisk do zwijania/otwierania paska bocznego */}
+          <button
+            onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+            title={
+              isSidebarVisible ? "Zamknij pasek boczny" : "Otwórz pasek boczny"
+            }
+            style={{
+              background: "#2a2a2a",
+              border: "1px solid #444",
+              color: "#fff",
+              fontSize: "18px",
+              cursor: "pointer",
+              padding: "6px 12px",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.2s",
+            }}
+            onMouseOver={(e) => (e.target.style.backgroundColor = "#333")}
+            onMouseOut={(e) => (e.target.style.backgroundColor = "#2a2a2a")}
+          >
+            {isSidebarVisible ? "◀" : "▶"}
+          </button>
+
           <h1>⚖️ Asystent Prawa Pracy</h1>
         </header>
 
