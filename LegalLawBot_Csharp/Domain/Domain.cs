@@ -143,6 +143,9 @@ namespace LegalLawBot_Csharp.Domain
         // Trwała pamięć aktywnej rozmowy Telegrama w bazie danych (nullable, bo rozmowa może być zamknięta)
         public Guid? ActiveConsultationId { get; private set; }
 
+        public int DailyQueryCount { get; private set; }
+        public int MaxDailyLimit { get; private set; }
+
         // Pusty konstruktor - wymagany przez EF Core do odtwarzania użytkownika z bazy
         private User()
         {
@@ -160,6 +163,8 @@ namespace LegalLawBot_Csharp.Domain
             Email = email;
             Status = UserStatus.Aktywny; // zawsze startuje jako Aktywny
             Role = UserRole.Standard; // domyślnie każdy jest zwykłym użytkownikiem
+            DailyQueryCount = 0;   // start z zerem zapytań
+            MaxDailyLimit = 10;    // domyślny limit zapytań na dzień
         }
 
         // Jedyny publiczny sposób tworzenia poprawnego użytkownika
@@ -202,6 +207,30 @@ namespace LegalLawBot_Csharp.Domain
         public void ClearActiveConsultation()
         {
             ActiveConsultationId = null;
+        }
+
+        // Metoda biznesowa: Zwiększa licznik lub rzuca błąd, jeśli przekroczono max. limit
+        public void IncrementQueryCount()
+        {
+            if (DailyQueryCount >= MaxDailyLimit)
+                throw new InvalidOperationException("Osiągnięto dzienny limit zapytań AI. Wymagane przejście na plan Premium.");
+
+            DailyQueryCount++;
+        }
+
+        // Metoda biznesowa: Bezpieczne zerowanie licznika (wywoływane przez proces w tle)
+        public void ResetDailyQueries()
+        {
+            DailyQueryCount = 0;
+        }
+
+        // Metoda pomocnicza (np. dla przyszłego panelu admina do zwiększania limitów)
+        public void UpdateMaxDailyLimit(int newLimit)
+        {
+            if (newLimit < 0)
+                throw new ArgumentException("Limit zapytań nie może być liczbą ujemną.", nameof(newLimit));
+
+            MaxDailyLimit = newLimit;
         }
     }
 }
