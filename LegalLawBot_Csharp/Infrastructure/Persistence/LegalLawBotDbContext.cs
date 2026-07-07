@@ -127,6 +127,14 @@ public class LegalLawBotDbContext : DbContext
             // 6. JAWNA KONFIGURACJA DLA TRWAŁEJ PAMIĘCI SESJI TELEGRAMA
             entity.Property(u => u.ActiveConsultationId)
                 .IsRequired(false); // jawna deklaracja że kolumna w bazie ma pozwalać na NULL
+            // 7. JAWNA KONFIGURACJA DLA LIMITÓW ZAPYTAŃ DZIENNYCH
+            entity.Property(u => u.DailyQueryCount)
+                .IsRequired()
+                .HasDefaultValue(0); // Baza danych automatycznie przypisze 0 nowym wierszom
+
+            entity.Property(u => u.MaxDailyLimit)
+                .IsRequired()
+                .HasDefaultValue(10); // Baza danych automatycznie przypisze limit 10
         });
 
         base.OnModelCreating(modelBuilder);
