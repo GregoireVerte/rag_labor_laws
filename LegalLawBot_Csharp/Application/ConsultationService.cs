@@ -6,12 +6,17 @@ public class ConsultationService
 {
     private readonly IConsultationRepository _repository;
     private readonly ILegalBrainService _legalBrain;
+    private readonly IUserRepository _userRepository;
 
     // Dependency Injection - wstrzykuje kontrakty a nie konkretne klasy
-    public ConsultationService(IConsultationRepository repository, ILegalBrainService legalBrain)
+    public ConsultationService(
+        IConsultationRepository repository,
+        ILegalBrainService legalBrain,
+        IUserRepository userRepository)
     {
         _repository = repository;
         _legalBrain = legalBrain;
+        _userRepository = userRepository;
     }
 
     public async Task<Guid> AskQuestionAsync(UserId userId, string rawQuestion, Guid? existingConsultationId = null)
@@ -19,6 +24,13 @@ public class ConsultationService
         // 1. Zamiana prymitywnego stringa na bezpieczny UserQuery
         // Jeśli tekst jest za krótki lub pusty, tu poleci błąd (zgodnie z zasadami w Domain.cs)
         var query = UserQuery.Create(rawQuestion);
+
+        // 1b. LOGIKA BIZNESOWA: Weryfikacja i inkrementacja limitu zapytań użytkownika
+        var user = await _userRepository.GetByIdAsync(userId)
+            ?? throw new InvalidOperationException("Nie znaleziono użytkownika o podanym Id.");
+
+        // ta metoda z Domain.cs rzuci InvalidOperationException, jeśli DailyQueryCount >= MaxDailyLimit
+        user.IncrementQueryCount();
 
         // 2. Inicjalizacja konsultacji (nowej lub kontynuacja starej)
         Consultation consultation;
@@ -53,7 +65,7 @@ public class ConsultationService
         // 4. Dodanie odpowiedzi (niezależnie czy nowa, czy stara sesja)
         consultation.AddResponse(answer, sources);
 
-        // 5. Zapisanie efektu pracy w repozytorium
+        // 5. Zapisanie efektu pracy w repozytorium konsultacji
         if (existingConsultationId.HasValue)
         {
             await _repository.UpdateAsync(consultation);
@@ -62,6 +74,9 @@ public class ConsultationService
         {
             await _repository.AddAsync(consultation);
         }
+
+        // 5b. Zapisanie zaktualizowanego licznika zapytań użytkownika w bazie danych
+        await _userRepository.UpdateAsync(user);
 
         // Zwraca Id, żeby frontend mógł później o tę konsultację zapytać
         return consultation.Id;
