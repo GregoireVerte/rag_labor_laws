@@ -131,6 +131,11 @@ public class ConsultationController : ControllerBase
                 var responseText = $"{answer}\n\nŹródła:\n" + string.Join("\n", sources);
                 await _botClient.SendMessage(chatId, responseText);
             }
+            catch (InvalidOperationException limitEx)
+            {
+                // Użytkownik Telegrama przekroczył limit - informuje go o Patronite/Patreon
+                await _botClient.SendMessage(chatId, $"⚠️ {limitEx.Message}\n\nTwój darmowy dzienny pakiet się skończył. Wesprzyj rozwój projektu na Patronite, aby w przyszłości była możliwa rozmowa bez ograniczeń! ⚖️🚀");
+            }
             catch (Exception ex)
             {
                 // Loguje błąd w tle i powiadamia użytkownika
@@ -172,6 +177,11 @@ public class ConsultationController : ControllerBase
         {
             // Jeśli np. pytanie było za krótkie (walidacja jest w Domain) to zwraca błąd 400
             return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // BIZNESOWY MOCK: Zwraca standardowy kod HTTP 402 Payment Required dla Reacta
+            return StatusCode(402, new { error = "LimitReached", message = ex.Message });
         }
         catch (Exception ex)
         {
