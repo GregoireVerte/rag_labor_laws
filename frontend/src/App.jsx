@@ -35,6 +35,8 @@ function App() {
   const [editTitleText, setEditTitleText] = useState("");
   // Stan do obsługi zwijania/rozwijania paska bocznego
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  // Stan do wyświetlania okienka (modala) z informacją o wyczerpaniu limitu zapytań
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   // Funkcja obsługująca rejestrację nowego konta
   const handleRegister = async (e) => {
@@ -251,10 +253,23 @@ function App() {
       fetchSessions();
     } catch (error) {
       console.error("Błąd:", error);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: "Błąd połączenia z serwerem." },
-      ]);
+
+      // Sprawdza czy backend zwrócił kod HTTP 402 (Payment Required)
+      if (error.response?.status === 402) {
+        setShowLimitModal(true);
+
+        // Wykonuje roll-back interfejsu:
+        // 1. Usuwa z ekranu ostatnie pytanie użytkownika, skoro serwer go nie przetworzył
+        setMessages((prev) => prev.slice(0, -1));
+        // 2. Przywraca wpisany tekst z powrotem do textarea, żeby użytkownik go nie stracił
+        setQuestion(userQuery);
+      } else {
+        // Każdy inny błąd (np. brak sieci, błąd 500) traktuje standardowo
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", text: "Błąd połączenia z serwerem." },
+        ]);
+      }
     }
     setLoading(false);
   };
@@ -734,6 +749,111 @@ function App() {
           </div>
         </div>
       </main>
+      {/* MODAL LIMITU ZAPYTAŃ (BILLING MOCK) */}
+      {showLimitModal && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0, 0, 0, 0.75)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            className="modal-box"
+            style={{
+              background: "#2a2a2a",
+              padding: "30px",
+              borderRadius: "8px",
+              width: "90%",
+              maxWidth: "450px",
+              textAlign: "center",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.6)",
+              color: "#fff",
+              border: "1px solid #444",
+            }}
+          >
+            <div style={{ fontSize: "40px", marginBottom: "15px" }}>⚠️</div>
+            <h3
+              style={{
+                marginBottom: "15px",
+                color: "#ff6b6b",
+                fontSize: "20px",
+              }}
+            >
+              Osiągnięto dzienny limit zapytań AI!
+            </h3>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#ccc",
+                marginBottom: "20px",
+                lineHeight: "1.5",
+              }}
+            >
+              Twój darmowy pakiet podstawowy na dziś został wyczerpany.
+              Generowanie zaawansowanych odpowiedzi prawnych RAG wiąże się z
+              realnymi kosztami utrzymania infrastruktury i tokenów AI.
+            </p>
+            <p
+              style={{
+                fontSize: "15px",
+                fontWeight: "bold",
+                marginBottom: "25px",
+                color: "#0088ff",
+              }}
+            >
+              Wesprzyj rozwój projektu na Patronite, aby w przyszłości była
+              możliwa bezpieczna i nielimitowana praca z asystentem! 🚀
+            </p>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+            >
+              <a
+                href="https://patronite.pl" // docelowo tutaj wejdzie link patronite/patreon
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  padding: "12px",
+                  background: "#ff5e4d",
+                  color: "#fff",
+                  borderRadius: "4px",
+                  textDecoration: "none",
+                  fontWeight: "bold",
+                  display: "block",
+                  transition: "background 0.2s",
+                }}
+              >
+                ❤️ Wesprzyj na Patronite
+              </a>
+              <button
+                onClick={() => setShowLimitModal(false)}
+                style={{
+                  padding: "10px",
+                  background: "transparent",
+                  border: "1px solid #555",
+                  color: "#aaa",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "13px",
+                }}
+                onMouseOver={(e) => (e.target.style.color = "#fff")}
+                onMouseOut={(e) => (e.target.style.color = "#aaa")}
+              >
+                Zamknij okno
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
