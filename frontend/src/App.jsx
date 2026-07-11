@@ -37,6 +37,8 @@ function App() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   // Stan do wyświetlania okienka (modala) z informacją o wyczerpaniu limitu zapytań
   const [showLimitModal, setShowLimitModal] = useState(false);
+  // Stan blokujący pole wpisywania po osiągnięciu limitu
+  const [isLimitReached, setIsLimitReached] = useState(false);
 
   // Funkcja obsługująca rejestrację nowego konta
   const handleRegister = async (e) => {
@@ -96,6 +98,7 @@ function App() {
       setMessages([]);
       setSessions([]);
       setSessionId(null);
+      setIsLimitReached(false);
       localStorage.removeItem("chat_session_id");
     }
   };
@@ -257,6 +260,7 @@ function App() {
       // Sprawdza czy backend zwrócił kod HTTP 402 (Payment Required)
       if (error.response?.status === 402) {
         setShowLimitModal(true);
+        setIsLimitReached(true); // Blokuje interfejs na stałe w tej sesji
 
         // Wykonuje roll-back interfejsu:
         // 1. Usuwa z ekranu ostatnie pytanie użytkownika, skoro serwer go nie przetworzył
@@ -720,26 +724,53 @@ function App() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="input-group">
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) =>
-                e.key === "Enter" &&
-                !e.shiftKey &&
-                question.length <= 1000 && // enter nie wyśle jeśli za długie
-                (e.preventDefault(), askAi())
-              }
-              placeholder="Zadaj pytanie..."
-            />
+          {isLimitReached ? (
+            /* WARIANT A: Blokada i duży przycisk zamiast pola tekstowego */
             <button
-              className="send-btn"
-              onClick={askAi}
-              disabled={loading || !question.trim() || question.length > 1000}
+              onClick={() => setShowLimitModal(true)}
+              style={{
+                width: "100%",
+                padding: "18px",
+                background: "linear-gradient(135deg, #e63946, #d62828)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "15px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                boxShadow: "0 4px 15px rgba(230, 57, 70, 0.3)",
+                transition: "all 0.2s",
+                marginBottom: "10px",
+              }}
+              onMouseOver={(e) => (e.target.style.opacity = "0.9")}
+              onMouseOut={(e) => (e.target.style.opacity = "1")}
             >
-              Wyślij
+              🔒 Osiągnięto dzienny limit zapytań AI! Kliknij tutaj, aby
+              dowiedzieć się więcej
             </button>
-          </div>
+          ) : (
+            /* WARIANT B: Standardowe pole tekstowe, gdy użytkownik ma jeszcze limit */
+            <div className="input-group">
+              <textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={(e) =>
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  question.length <= 1000 &&
+                  (e.preventDefault(), askAi())
+                }
+                placeholder="Zadaj pytanie..."
+              />
+              <button
+                className="send-btn"
+                onClick={askAi}
+                disabled={loading || !question.trim() || question.length > 1000}
+              >
+                Wyślij
+              </button>
+            </div>
+          )}
 
           {/* Licznik znaków informujący użytkownika o limicie */}
           <div
