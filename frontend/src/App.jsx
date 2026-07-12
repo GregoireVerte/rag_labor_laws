@@ -103,7 +103,7 @@ function App() {
     }
   };
 
-  // 1. Pobieranie listy wszystkich sesji z bazy (Wersja Dynamiczna)
+  // Pobieranie listy wszystkich sesji z bazy (Wersja Dynamiczna)
   const fetchSessions = async () => {
     if (!user) return; // Zabezpieczenie: nie pobieraj jeśli nikt nie jest zalogowany
     try {
@@ -116,7 +116,32 @@ function App() {
     }
   };
 
-  // 2. Ładowanie historii konkretnej sesji
+  // Pobieranie aktualnego stanu licznika zapytań bezpośrednio z bazy danych
+  const fetchUserLimits = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from("Users")
+        .select("DailyQueryCount, MaxDailyLimit")
+        .eq("Id", user.id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        // Jeśli licznik dobił do limitu natychmiast blokuje interfejs
+        if (data.DailyQueryCount >= data.MaxDailyLimit) {
+          setIsLimitReached(true);
+        } else {
+          setIsLimitReached(false);
+        }
+      }
+    } catch (error) {
+      console.error("Błąd pobierania limitów z bazy:", error);
+    }
+  };
+
+  // Ładowanie historii konkretnej sesji
   const loadHistory = async (id) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/history/${id}`);
@@ -138,10 +163,11 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Start przy uruchomieniu lub zmianie użytkownika: pobiera sesje i historię
+  // Start przy uruchomieniu lub zmianie użytkownika: pobiera sesje, historię i limity
   useEffect(() => {
     if (user) {
       fetchSessions();
+      fetchUserLimits(); // sprawdza limity od razu po logowaniu
       if (sessionId) {
         loadHistory(sessionId);
       }
@@ -254,6 +280,7 @@ function App() {
 
       // Po udanej odpowiedzi odświeża listę sesji w Sidebarze
       fetchSessions();
+      fetchUserLimits(); // sprawdza czy to udane pytanie nie było ostatnim darmowym
     } catch (error) {
       console.error("Błąd:", error);
 
