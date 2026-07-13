@@ -39,6 +39,8 @@ function App() {
   const [showLimitModal, setShowLimitModal] = useState(false);
   // Stan blokujący pole wpisywania po osiągnięciu limitu
   const [isLimitReached, setIsLimitReached] = useState(false);
+  const [queryCount, setQueryCount] = useState(0);
+  const [maxLimit, setMaxLimit] = useState(10);
 
   // Funkcja obsługująca rejestrację nowego konta
   const handleRegister = async (e) => {
@@ -99,6 +101,7 @@ function App() {
       setSessions([]);
       setSessionId(null);
       setIsLimitReached(false);
+      setQueryCount(0);
       localStorage.removeItem("chat_session_id");
     }
   };
@@ -129,6 +132,9 @@ function App() {
       if (error) throw error;
 
       if (data) {
+        setQueryCount(data.DailyQueryCount);
+        setMaxLimit(data.MaxDailyLimit);
+
         // Jeśli licznik dobił do limitu natychmiast blokuje interfejs
         if (data.DailyQueryCount >= data.MaxDailyLimit) {
           setIsLimitReached(true);
@@ -587,6 +593,34 @@ function App() {
             borderTop: "1px solid #333",
           }}
         >
+          {/* LICZNIK PYTAŃ */}
+          {user && (
+            <div
+              style={{
+                fontSize: "12px",
+                color: isLimitReached ? "#ff4d4d" : "#aaa",
+                marginBottom: "12px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: "#252525",
+                padding: "8px 10px",
+                borderRadius: "4px",
+                border: isLimitReached ? "1px solid #ff4d4d" : "1px solid #333",
+              }}
+            >
+              <span>Wykorzystane zapytania:</span>
+              <span
+                style={{
+                  fontWeight: "bold",
+                  color: isLimitReached ? "#ff4d4d" : "#0088ff",
+                }}
+              >
+                {queryCount} / {maxLimit}
+              </span>
+            </div>
+          )}
+
           <div
             className="user-profile"
             style={{ display: "flex", alignItems: "center", gap: "10px" }}
