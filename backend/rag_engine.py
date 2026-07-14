@@ -60,10 +60,10 @@ class LaborLawRAG:
 
         # 3. Reranking (Cross-Encoder) przez HF API - z automatycznym Retry i bezpiecznym parsowaniem struktury
         if results:
-            #### format standardowy list-of-lists dla Hugging Face Inference API
+            #### format słownikowy dla Hugging Face Inference API (obsługa par tekstowych)
             payload = {
                 "inputs": [
-                    [query, res.payload.get('content', '')]
+                    {"text": query, "text_pair": res.payload.get('content', '')}
                     for res in results
                 ]
             }
