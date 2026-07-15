@@ -78,6 +78,9 @@ class LaborLawRAG:
                     if attempt < 2:
                         time.sleep(random.uniform(2, 4))
 
+            ### DLA DIAGNOSTYKI:
+            print(f"🔍 [DEBUG RERANKER] Typ: {type(rerank_resp)} | Zawartość: {str(rerank_resp)[:500]}")
+
             ## ZABEZPIECZENIE: sprawdza czy liczba punktów z HF zgadza się z Qdrant
             if rerank_resp and isinstance(rerank_resp, list) and len(rerank_resp) == len(results):
                 try:
