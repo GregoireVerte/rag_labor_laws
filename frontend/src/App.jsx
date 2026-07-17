@@ -577,7 +577,12 @@ function App() {
               {/* Przycisk usuwania */}
               <button
                 className="delete-session-btn"
-                onClick={(e) => deleteSession(e, s.id)}
+                onClick={(e) => !loading && deleteSession(e, s.id)}
+                disabled={loading}
+                style={{
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.3 : 1,
+                }}
               >
                 ×
               </button>
@@ -659,25 +664,31 @@ function App() {
               {user && (
                 <button
                   onClick={handleLogout}
+                  disabled={loading}
                   style={{
                     padding: "6px 10px",
                     borderRadius: "4px",
-                    border: "1px solid #ff4d4d",
+                    border: loading ? "1px solid #555" : "1px solid #ff4d4d",
                     backgroundColor: "transparent",
-                    color: "#ff4d4d",
+                    color: loading ? "#555" : "#ff4d4d",
                     fontSize: "12px",
                     fontWeight: "bold",
-                    cursor: "pointer",
+                    cursor: loading ? "not-allowed" : "pointer",
                     textAlign: "center",
                     transition: "all 0.2s",
+                    opacity: loading ? 0.6 : 1,
                   }}
                   onMouseOver={(e) => {
-                    e.target.style.backgroundColor = "#ff4d4d";
-                    e.target.style.color = "#fff";
+                    if (!loading) {
+                      e.target.style.backgroundColor = "#ff4d4d";
+                      e.target.style.color = "#fff";
+                    }
                   }}
                   onMouseOut={(e) => {
-                    e.target.style.backgroundColor = "transparent";
-                    e.target.style.color = "#ff4d4d";
+                    if (!loading) {
+                      e.target.style.backgroundColor = "transparent";
+                      e.target.style.color = "#ff4d4d";
+                    }
                   }}
                 >
                   🚪 Wyloguj się
