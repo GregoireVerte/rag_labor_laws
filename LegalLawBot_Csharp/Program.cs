@@ -2,6 +2,7 @@ using LegalLawBot_Csharp.Application;
 using LegalLawBot_Csharp.Domain;
 using LegalLawBot_Csharp.Infrastructure.ExternalServices;
 using LegalLawBot_Csharp.Infrastructure.Persistence;
+using LegalLawBot_Csharp.Infrastructure.BackgroundServices;
 // using LegalLawBot_Csharp.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -47,6 +48,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 // Rejestruje DbContext z użyciem PostgreSQL
 builder.Services.AddDbContext<LegalLawBotDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+// Rejestruje robota w tle do codziennego kasowania limitu zapytań
+builder.Services.AddHostedService<DailyLimitResetService>();
 
 builder.Services.AddOpenApi();
 
