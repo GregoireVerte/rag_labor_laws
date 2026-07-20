@@ -50,6 +50,52 @@ public class ConsultationController : ControllerBase
 
             try
             {
+                var telegramChatId = TelegramChatId.Create(chatId);
+
+                // Obsługa Deep Linking (/start GUID) - Łączenie konta
+                if (messageText.StartsWith("/start", StringComparison.OrdinalIgnoreCase))
+                {
+                    var parts = messageText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length > 1 && Guid.TryParse(parts[1], out var parsedGuid))
+                    {
+                        var domainUserId = UserId.Create(parsedGuid);
+                        var userByGuid = await scopedUserService.GetByIdAsync(domainUserId);
+
+                        if (userByGuid != null)
+                        {
+                            userByGuid.LinkTelegram(telegramChatId);
+                            await scopedUserService.UpdateAsync(userByGuid);
+
+                            await _botClient.SendMessage(chatId, "🎉 Twój profil został pomyślnie powiązany z kontem Asystenta Prawa Pracy! Możesz teraz zadawać pytania bezpośrednio stąd.");
+                            return;
+                        }
+                    }
+                }
+
+                // Weryfikacja tożsamości w bazie danych (POBIERA RAZ)
+                var user = await scopedUserService.GetByTelegramChatIdAsync(telegramChatId);
+
+                if (user == null)
+                {
+                    await _botClient.SendMessage(chatId, "Dostęp zablokowany. Twój identyfikator Telegram nie jest zarejestrowany w systemie Asystenta Prawa Pracy. Zaloguj się na stronie www i kliknij 'Połącz z Telegramem'.");
+                    return;
+                }
+
+                // Obsługa komendy /reset
+                if (messageText.Trim().Equals("/reset", StringComparison.OrdinalIgnoreCase))
+                {
+                    user.ClearActiveConsultation();
+                    await scopedUserService.UpdateAsync(user);
+                    await _botClient.SendMessage(chatId, "Kontekst rozmowy został wyczyszczony! 🧠 Możemy zaczynać od nowa. O co chcesz zapytać?");
+                    return;
+                }
+
+                // Poinformowanie użytkownika i wybudzanie serwera Pythona
+                await _botClient.SendMessage(chatId, "Przeszukuję bazę wiedzy prawa pracy... 🔍 Proszę o chwilę cierpliwości. (Inicjalizacja serwera AI, to może potrwać około minuty...)");
+
+
+
+
                 // Najpierw wysyła komunikat. Telegram dostaje informację, Bot natychmiast odpowiada
                 await _botClient.SendMessage(chatId, "Przeszukuję bazę wiedzy prawa pracy... 🔍 Proszę o chwilę cierpliwości. (Inicjalizacja serwera AI, to może potrwać około minuty...)");
 

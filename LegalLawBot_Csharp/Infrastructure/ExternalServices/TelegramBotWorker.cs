@@ -67,7 +67,7 @@ public class TelegramBotWorker : BackgroundService
 
     private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
-        // 1. Sprawdza czy w ogóle otrzymaliśmy jakikolwiek pakiet wiadomości
+        // Sprawdza czy w ogóle otrzymaliśmy jakikolwiek pakiet wiadomości
         if (update.Message is not { } message)
             return;
 
@@ -91,23 +91,51 @@ public class TelegramBotWorker : BackgroundService
         // Loguje info w czarnym oknie konsoli backendu (tutaj messageText na pewno już istnieje)
         _logger.LogInformation("Bot otrzymał wiadomość od {Name} (ChatID: {Id}): '{Text}'", username, chatId, messageText);
 
-        // 2. Otwiera tymczasową furtkę (Scope) dla usług Scoped (baza danych)
+        // Otwiera tymczasową furtkę (Scope) dla usług Scoped (baza danych)
         using (var scope = _serviceProvider.CreateScope())
         {
-            // 3. Wyciąga repozytorium użytkowników bezpośrednio z tej furtki
+            // Wyciąga repozytorium użytkowników bezpośrednio z tej furtki
             var userRepository = scope.ServiceProvider.GetRequiredService<Domain.IUserRepository>();
 
-            // 4. Szuka użytkownika w Supabase po jego Telegram Chat ID
+            // Szuka użytkownika w Supabase po jego Telegram Chat ID
             var telegramChatId = Domain.TelegramChatId.Create(chatId);
+
+            // OBSŁUGA DEEP LINKING (/start PAYLOAD)
+            if (messageText.StartsWith("/start", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = messageText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length > 1 && Guid.TryParse(parts[1], out var parsedGuid))
+                {
+                    var domainUserId = Domain.UserId.Create(parsedGuid);
+                    var userByGuid = await userRepository.GetByIdAsync(domainUserId);
+
+                    if (userByGuid != null)
+                    {
+                        // Łączy konto za pomocą istniejącej metody z domeny DDD
+                        userByGuid.LinkTelegram(telegramChatId);
+                        await userRepository.UpdateAsync(userByGuid);
+
+                        _logger.LogInformation("Pomyślnie sparowano konto użytkownika {Email} z Telegram ChatID: {Id}", userByGuid.Email, chatId);
+                        await botClient.SendMessage(
+                            chatId: chatId,
+                            text: "🎉 Twój profil został pomyślnie powiązany z kontem Asystenta Prawa Pracy! Od teraz możesz zadawać pytania bezpośrednio stąd, a Twoje dzienne limity będą synchronizowane.",
+                            cancellationToken: cancellationToken
+                        );
+                        return;
+                    }
+                }
+            }
+
+            // Standardowe szukanie użytkownika w bazie
             var user = await userRepository.GetByTelegramChatIdAsync(telegramChatId);
 
-            // 5. Ochroniarz: jeśli bota zaczepi ktoś nieznajomy odmawia dostępu
+            // Ochroniarz: jeśli bota zaczepi ktoś nieznajomy odmawia dostępu
             if (user == null)
             {
                 _logger.LogWarning("Odmowa dostępu dla ChatID: {Id} (Brak w bazie)", chatId);
                 await botClient.SendMessage(
                     chatId: chatId,
-                    text: "Dostęp zablokowany. Twój identyfikator Telegram nie jest zarejestrowany w systemie Asystenta Prawa Pracy.",
+                    text: "Dostęp zablokowany. Twój identyfikator Telegram nie jest zarejestrowany w systemie. Zaloguj się na stronie www i kliknij 'Połącz z Telegramem'.",
                     cancellationToken: cancellationToken
                 );
                 return;
@@ -132,7 +160,7 @@ public class TelegramBotWorker : BackgroundService
                 return;
             }
 
-            // 6. Użytkownik autoryzowany –> odpala RAG
+            // Użytkownik autoryzowany –> odpala RAG
             // ponieważ serwer Pythona na Renderze potrzebuje kilku sekund na analizę
             // najpierw wysyła użytkownikowi sygnał że system podjął pracę
             await botClient.SendMessage(
@@ -144,7 +172,7 @@ public class TelegramBotWorker : BackgroundService
             // wyciąga ConsultationService z tymczasowej "furtki" (scope)
             var consultationService = scope.ServiceProvider.GetRequiredService<Application.ConsultationService>();
 
-            // 6a. Sprawdza czy ten ChatID ma już przypisaną aktywną sesję - czyta ID bezpośrednio z profilu użytkownika z bazy
+            // Sprawdza czy ten ChatID ma już przypisaną aktywną sesję - czyta ID bezpośrednio z profilu użytkownika z bazy
             Guid? existingConsultationId = user.ActiveConsultationId;
 
             // Wywołuje pełny proces biznesowy (przekazujemy też ID starej sesji jeśli istniała):
@@ -154,7 +182,7 @@ public class TelegramBotWorker : BackgroundService
                 // próba kontaktu z Pythonem i bazą danych
                 var consultationId = await consultationService.AskQuestionAsync(user.Id, messageText, existingConsultationId);
 
-                // 6b. Zapisuje (lub aktualizuje) ID sesji, aby kolejne pytania trafiały do tej samej rozmowy (Zamiast zapisu do słownika, aktualizuje encję User i zapisuje w bazie Supabase)
+                // Zapisuje (lub aktualizuje) ID sesji, aby kolejne pytania trafiały do tej samej rozmowy (Zamiast zapisu do słownika, aktualizuje encję User i zapisuje w bazie Supabase)
                 user.SetActiveConsultation(consultationId);
                 await userRepository.UpdateAsync(user);
 
@@ -169,6 +197,16 @@ public class TelegramBotWorker : BackgroundService
                 await botClient.SendMessage(
                     chatId: chatId,
                     text: aiResponse,
+                    cancellationToken: cancellationToken
+                );
+            }
+            // ŁAPANIE LIMITU DLA WORKERA
+            catch (InvalidOperationException limitEx)
+            {
+                _logger.LogWarning("Użytkownik {Id} przekroczył limit zapytań.", chatId);
+                await botClient.SendMessage(
+                    chatId: chatId,
+                    text: $"⚠️ {limitEx.Message}\n\nTwój darmowy dzienny pakiet się skończył. Wesprzyj rozwój projektu na Patronite, aby w przyszłości była możliwa rozmowa bez ograniczeń! ⚖️🚀",
                     cancellationToken: cancellationToken
                 );
             }
