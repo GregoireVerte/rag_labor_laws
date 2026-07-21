@@ -72,12 +72,12 @@ public class ConsultationController : ControllerBase
                     }
                 }
 
-                // Weryfikacja tożsamości w bazie danych (POBIERA RAZ)
+                // Weryfikacja tożsamości w bazie danych (pobiera raz)
                 var user = await scopedUserService.GetByTelegramChatIdAsync(telegramChatId);
 
                 if (user == null)
                 {
-                    await _botClient.SendMessage(chatId, "Dostęp zablokowany. Twój identyfikator Telegram nie jest zarejestrowany w systemie Asystenta Prawa Pracy. Zaloguj się na stronie www i kliknij 'Połącz z Telegramem'.");
+                    await _botClient.SendMessage(chatId, "Dostęp zablokowany. Twój identyfikator Telegram nie jest zarejestrowany w systemie Asystenta Prawa Pracy. Zaloguj się na stronie https://rag-labor-laws.vercel.app/ i kliknij 'Połącz z Telegramem'.");
                     return;
                 }
 
@@ -91,12 +91,6 @@ public class ConsultationController : ControllerBase
                 }
 
                 // Poinformowanie użytkownika i wybudzanie serwera Pythona
-                await _botClient.SendMessage(chatId, "Przeszukuję bazę wiedzy prawa pracy... 🔍 Proszę o chwilę cierpliwości. (Inicjalizacja serwera AI, to może potrwać około minuty...)");
-
-
-
-
-                // Najpierw wysyła komunikat. Telegram dostaje informację, Bot natychmiast odpowiada
                 await _botClient.SendMessage(chatId, "Przeszukuję bazę wiedzy prawa pracy... 🔍 Proszę o chwilę cierpliwości. (Inicjalizacja serwera AI, to może potrwać około minuty...)");
 
                 // Przedskoczek w bezpiecznym "izolatorze" try/catch ; z pełnym oczekiwaniem (AWAIT) – pętla sprawdzająca stan Pythona
@@ -152,23 +146,16 @@ public class ConsultationController : ControllerBase
                     Console.WriteLine($"[WakeUp Loop Critical Failure]: {wakeUpEx.Message}");
                 }
 
-                // Klasyczna logika biznesowa (pobieranie usera i wysyłanie pytania do publicznego API)
-                // Szuka użytkownika po jego ChatId z Telegrama
-                var telegramChatId = TelegramChatId.Create(chatId);
-                var user = await scopedUserService.GetByTelegramChatIdAsync(telegramChatId);
-
-                if (user == null)
-                {
-                    await _botClient.SendMessage(chatId, "Twój profil na Telegramie nie jest powiązany z żadnym kontem w systemie.");
-                    return;
-                }
-
-                // Wywołuje dokładnie tę samą logikę biznesową (DDD) co zawsze
+                // Wywołanie logiki RAG (Korzysta z pobranego wcześniej obiektu 'user')
                 var consultationId = await scopedConsultationService.AskQuestionAsync(
                     user.Id,
                     messageText,
                     user.ActiveConsultationId
                 );
+
+                // Zapisuje ID sesji w profilu, żeby zachować ciągłość konwersacji
+                user.SetActiveConsultation(consultationId);
+                await scopedUserService.UpdateAsync(user);
 
                 // Pobiera odpowiedź i źródła
                 var (answer, sources) = await scopedConsultationService.GetLatestAnswerAsync(consultationId);
@@ -191,6 +178,7 @@ public class ConsultationController : ControllerBase
         });
 
         // Zwraca status 200 OK natychmiast do Telegrama
+        // (Dzięki temu Telegram nie ponawia prób wysyłania tego samego webhooka)
         return Ok();
     }
 
