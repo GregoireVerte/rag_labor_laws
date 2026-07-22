@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "./App.css";
 import { supabase } from "./supabaseClient";
+import TelegramLinker from "./components/TelegramLinker";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -696,6 +697,8 @@ function App() {
               )}
             </div>
           </div>
+          {/* KOMPONENT POŁĄCZENIA TELEGRAMA */}
+          {user && <TelegramLinker userId={user.id} disabled={loading} />}
         </div>
       </aside>
 
