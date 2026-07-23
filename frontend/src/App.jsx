@@ -38,6 +38,8 @@ function App() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   // Stan do wyświetlania okienka (modala) z informacją o wyczerpaniu limitu zapytań
   const [showLimitModal, setShowLimitModal] = useState(false);
+  // Stan do wyświetlania okienka (modala) Ustawień
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   // Stan blokujący pole wpisywania po osiągnięciu limitu
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [queryCount, setQueryCount] = useState(0);
@@ -627,6 +629,39 @@ function App() {
             </div>
           )}
 
+          {/* PRZYCISK USTAWIENIA */}
+          {user && (
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "8px",
+                marginBottom: "12px",
+                backgroundColor: "#2a2a2a",
+                border: "1px solid #444",
+                borderRadius: "4px",
+                color: "#fff",
+                fontSize: "13px",
+                fontWeight: "bold",
+                cursor: loading ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                transition: "background 0.2s",
+              }}
+              onMouseOver={(e) =>
+                !loading && (e.target.style.backgroundColor = "#333")
+              }
+              onMouseOut={(e) =>
+                !loading && (e.target.style.backgroundColor = "#2a2a2a")
+              }
+            >
+              ⚙️ Ustawienia
+            </button>
+          )}
+
           <div
             className="user-profile"
             style={{ display: "flex", alignItems: "center", gap: "10px" }}
@@ -697,8 +732,6 @@ function App() {
               )}
             </div>
           </div>
-          {/* KOMPONENT POŁĄCZENIA TELEGRAMA */}
-          {user && <TelegramLinker userId={user.id} disabled={loading} />}
         </div>
       </aside>
 
@@ -957,6 +990,84 @@ function App() {
                 Zamknij okno
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL USTAWIEŃ KONTA */}
+      {showSettingsModal && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0, 0, 0, 0.75)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            className="modal-box"
+            style={{
+              background: "#2a2a2a",
+              padding: "25px",
+              borderRadius: "8px",
+              width: "90%",
+              maxWidth: "500px",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.6)",
+              color: "#fff",
+              border: "1px solid #444",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "20px",
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: "20px" }}>
+                ⚙️ Ustawienia konta
+              </h3>
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#aaa",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* KOMPONENT POŁĄCZENIA TELEGRAMA --> TELEGRAM LINKER */}
+            {user && <TelegramLinker userId={user.id} disabled={loading} />}
+
+            <button
+              onClick={() => setShowSettingsModal(false)}
+              style={{
+                marginTop: "20px",
+                width: "100%",
+                padding: "10px",
+                background: "transparent",
+                border: "1px solid #555",
+                color: "#aaa",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "13px",
+              }}
+            >
+              Zamknij
+            </button>
           </div>
         </div>
       )}
