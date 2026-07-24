@@ -56,6 +56,7 @@ public class ConsultationController : ControllerBase
                 if (messageText.StartsWith("/start", StringComparison.OrdinalIgnoreCase))
                 {
                     var parts = messageText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
                     if (parts.Length > 1 && Guid.TryParse(parts[1], out var parsedGuid))
                     {
                         var domainUserId = UserId.Create(parsedGuid);
@@ -67,8 +68,18 @@ public class ConsultationController : ControllerBase
                             await scopedUserService.UpdateAsync(userByGuid);
 
                             await _botClient.SendMessage(chatId, "🎉 Twój profil został pomyślnie powiązany z kontem Asystenta Prawa Pracy! Możesz teraz zadawać pytania bezpośrednio stąd.");
-                            return;
+                            return;// Zakończ sukcesem
                         }
+                        else
+                        {
+                            await _botClient.SendMessage(chatId, $"⚠️ Błąd: Nie znaleziono użytkownika w bazie dla podanego ID ({parsedGuid}).");
+                            return; // Zakończ - nie szukaj w AI!
+                        }
+                    }
+                    else
+                    {
+                        await _botClient.SendMessage(chatId, "⚠️ Błąd: Link z Telegramem nie zawierał wymaganego identyfikatora konta. Wygeneruj link ponownie na stronie.");
+                        return; // Zakończ - nie szukaj w AI!
                     }
                 }
 
