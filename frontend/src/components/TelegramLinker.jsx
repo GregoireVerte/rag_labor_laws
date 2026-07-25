@@ -12,7 +12,8 @@ function TelegramLinker({
       className="telegram-connect-box"
       style={{
         padding: "20px",
-        border: "1px solid #ccc",
+        backgroundColor: "#222",
+        border: "1px solid #333",
         borderRadius: "8px",
         opacity: disabled ? 0.5 : 1, // Poszarzenie gdy AI myśli
         transition: "opacity 0.2s",
@@ -22,10 +23,15 @@ function TelegramLinker({
       <p style={{ fontSize: "14px", color: "#666" }}>
         Chcesz zadawać pytania bezpośrednio z aplikacji Telegram? Kliknij
         poniższy przycisk, aby bezpiecznie powiązać swoje konto z Telegramem i
-        zadawać pytania bezpośrednio z komunikatora. Po kliknięciu linku strona
-        przekieruje Cię na oficjalną domenę Telegrama, gdzie po zalogowaniu na
-        samym dole czatu zobaczysz duży przycisk START (lub Rozpocznij), który
-        zakończy proces łączenia konta z botem Telegrama.
+        zadawać pytania bezpośrednio z komunikatora, np. na swoim telefonie. Po
+        kliknięciu linku strona przekieruje Cię na oficjalną domenę Telegrama,
+        gdzie po zalogowaniu na samym dole czatu zobaczysz duży przycisk
+        ROZPOCZNIJ (lub START), który zakończy proces łączenia konta asystenta z
+        botem Telegrama. Możesz to zrobić na telefonie z Telegramem lub na
+        komputerze z aplikacją Telegram Desktop (pamiętaj, że w szczególności na
+        komputerze / laptopie musisz być zalogowany na swoim właściwym koncie
+        Telegrama, żeby nie zsynchronizować się przypadkowo z niewłaściwym
+        kontem Telegrama, jeżeli współdzielisz urządzenie z innymi domownikami).
       </p>
 
       <a

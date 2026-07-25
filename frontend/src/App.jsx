@@ -1014,11 +1014,13 @@ function App() {
             className="modal-box"
             style={{
               background: "#2a2a2a",
-              padding: "25px",
-              borderRadius: "8px",
-              width: "90%",
-              maxWidth: "500px",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.6)",
+              padding: "30px",
+              borderRadius: "10px",
+              width: "60vw", // 60% szerokości ekranu
+              maxWidth: "750px", // max limit, żeby na bardzo szerokich monitorach nie był zbyt wielki
+              maxHeight: "85vh", // max 85% wysokości ekranu
+              overflowY: "auto", // w razie potrzeby doda przewijanie, gdy dojdzie więcej ustawień
+              boxShadow: "0 8px 30px rgba(0,0,0,0.7)",
               color: "#fff",
               border: "1px solid #444",
             }}
