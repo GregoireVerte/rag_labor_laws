@@ -139,9 +139,9 @@ def run_ingestion(status_date="2026-02-03"):
         )
     )
 
-    # Wykonanie atomowej podmiany w Qdrant
+    # Wykonanie atomowej podmiany w Qdrant (przekazuje bezpośrednio listę alias_operations)
     client.update_collection_aliases(
-        change_aliases_operations=[AliasOperations(action=op) for op in alias_operations]
+        change_aliases_operations=alias_operations
     )
 
     ## Sprzątanie starych kolekcji po udanej podmianie
