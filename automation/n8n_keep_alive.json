@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "keep-alive",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-304, 176],
+      "id": "f81f06e4-e1da-4d2a-b10c-d47148e4a11e",
+      "name": "Webhook",
+      "webhookId": "6f745b61-e019-42e1-a83e-ed58b07572c4"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"ok\", \"message\": \"n8n is awake!\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [-16, -64],
+      "id": "7f4c2914-fb00-458e-a130-668bbfc46e6b",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "5e77112a4584294856d2a2ea458f8b82ffd9a6a2eeb1b7ae701c0579b4f1de8d"
+  }
+}

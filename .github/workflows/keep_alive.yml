@@ -1,0 +1,27 @@
+name: Keep Alive HF n8n
+
+on:
+  schedule:
+    # Odpala się 2 razy na dobę: ok. 06:15 i 18:15 UTC (+ max. 50 minut)
+    - cron: "15 6,18 * * *"
+  workflow_dispatch: # Pozwala odpalić ręcznie przyciskiem w GitHubie
+
+jobs:
+  ping-n8n:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Random Delay (Jitter)
+        run: |
+          # Losowe opóźnienie od 1 do 50 minut przed wysłaniem żądania
+          DELAY=$((1 + RANDOM % 50))
+          echo "Czekam $DELAY minut przed wysłaniem pinga..."
+          sleep $((DELAY * 60))
+
+      - name: Send POST to n8n Webhook
+        run: |
+          curl -X POST "https://gregoireverte-my-n8n-instance.hf.space/webhook/keep-alive" \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -d '{"source": "github_actions", "action": "ping"}' \
+            --fail --verbose
