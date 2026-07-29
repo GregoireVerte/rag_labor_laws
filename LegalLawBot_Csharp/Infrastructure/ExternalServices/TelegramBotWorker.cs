@@ -144,7 +144,18 @@ public class TelegramBotWorker : BackgroundService
             // obsługa dla /reset przy Telegramie
             if (messageText.Trim().Equals("/reset", StringComparison.OrdinalIgnoreCase))
             {
-                // Wywołuje metodę biznesową z encji User
+                // Sprawdza czy użytkownik miał w ogóle aktywną konsultację
+                if (user.ActiveConsultationId.HasValue)
+                {
+                    var activeConsultationId = user.ActiveConsultationId.Value;
+                    var consultationService = scope.ServiceProvider.GetRequiredService<Application.ConsultationService>();
+
+                    // Fizycznie kasuje stary wątek i wiadomości z bazy danych
+                    await consultationService.DeleteConsultationAsync(activeConsultationId);
+                    _logger.LogInformation("Usunięto konsultację {ConsultationId} z bazy danych.", activeConsultationId);
+                }
+
+                // Wywołuje metodę biznesową z encji User // Czyści wskaźnik na aktywną konsultację w encji User
                 user.ClearActiveConsultation();
 
                 // Zapisuje zaktualizowany profil użytkownika do bazy Supabase
@@ -154,7 +165,7 @@ public class TelegramBotWorker : BackgroundService
 
                 await botClient.SendMessage(
                     chatId: chatId,
-                    text: "Kontekst rozmowy został wyczyszczony! 🧠 Możemy zaczynać od nowa. O co chcesz zapytać?",
+                    text: "Kontekst rozmowy został wyczyszczony, a poprzednia sesja usunięta z bazy! 🧹 Możemy zaczynać od nowa. O co chcesz zapytać?",
                     cancellationToken: cancellationToken
                 );
                 return;
