@@ -94,8 +94,10 @@ public class TelegramBotWorker : BackgroundService
         // Otwiera tymczasową furtkę (Scope) dla usług Scoped (baza danych)
         using (var scope = _serviceProvider.CreateScope())
         {
+            // Wyciąga potrzebne serwisy RAZ na początku bloku
             // Wyciąga repozytorium użytkowników bezpośrednio z tej furtki
             var userRepository = scope.ServiceProvider.GetRequiredService<Domain.IUserRepository>();
+            var consultationService = scope.ServiceProvider.GetRequiredService<Application.ConsultationService>();
 
             // Szuka użytkownika w Supabase po jego Telegram Chat ID
             var telegramChatId = Domain.TelegramChatId.Create(chatId);
@@ -148,7 +150,6 @@ public class TelegramBotWorker : BackgroundService
                 if (user.ActiveConsultationId.HasValue)
                 {
                     var activeConsultationId = user.ActiveConsultationId.Value;
-                    var consultationService = scope.ServiceProvider.GetRequiredService<Application.ConsultationService>();
 
                     // Fizycznie kasuje stary wątek i wiadomości z bazy danych
                     await consultationService.DeleteConsultationAsync(activeConsultationId);
@@ -180,9 +181,6 @@ public class TelegramBotWorker : BackgroundService
                 cancellationToken: cancellationToken
             );
 
-            // wyciąga ConsultationService z tymczasowej "furtki" (scope)
-            var consultationService = scope.ServiceProvider.GetRequiredService<Application.ConsultationService>();
-
             // Sprawdza czy ten ChatID ma już przypisaną aktywną sesję - czyta ID bezpośrednio z profilu użytkownika z bazy
             Guid? existingConsultationId = user.ActiveConsultationId;
 
@@ -190,7 +188,7 @@ public class TelegramBotWorker : BackgroundService
             // Tworzy nową sesję, zapisuje ją w Supabase, odpytuje Pythona na Renderze, dołącza artykuły i zapisuje odpowiedź
             try
             {
-                // próba kontaktu z Pythonem i bazą danych
+                // próba kontaktu z Pythonem i bazą danych (używamy pobranego wyżej consultationService)
                 var consultationId = await consultationService.AskQuestionAsync(user.Id, messageText, existingConsultationId);
 
                 // Zapisuje (lub aktualizuje) ID sesji, aby kolejne pytania trafiały do tej samej rozmowy (Zamiast zapisu do słownika, aktualizuje encję User i zapisuje w bazie Supabase)
