@@ -146,24 +146,24 @@ public class TelegramBotWorker : BackgroundService
             // obsługa dla /reset przy Telegramie
             if (messageText.Trim().Equals("/reset", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogInformation("=== DIAGNOSTYKA RESETU ===");
-                _logger.LogInformation("Użytkownik ID z bazy: {UserId}", user.Id.Value);
-                _logger.LogInformation("ActiveConsultationId odczytane z obiektu User: {ConsultationId}",
+                _logger.LogError("=== DIAGNOSTYKA RESETU ===");
+                _logger.LogError("Użytkownik ID z bazy: {UserId}", user.Id.Value);
+                _logger.LogError("ActiveConsultationId odczytane z obiektu User: {ConsultationId}",
                     user.ActiveConsultationId.HasValue ? user.ActiveConsultationId.Value.ToString() : "BRAK (NULL)");
 
                 // Sprawdza czy użytkownik miał w ogóle aktywną konsultację
                 if (user.ActiveConsultationId.HasValue)
                 {
                     var activeConsultationId = user.ActiveConsultationId.Value;
-                    _logger.LogInformation("Rozpoczynam usuwanie konsultacji {ConsultationId}...", activeConsultationId);
+                    _logger.LogError("Rozpoczynam usuwanie konsultacji {ConsultationId}...", activeConsultationId);
 
                     // Fizycznie kasuje stary wątek i wiadomości z bazy danych
                     var isDeleted = await consultationService.DeleteConsultationAsync(activeConsultationId);
-                    _logger.LogInformation("Wynik DeleteConsultationAsync: {Result}", isDeleted ? "SUKCES (USUNIĘTO)" : "PORAŻKA (Nie znaleziono w bazie Consultations)");
+                    _logger.LogError("Wynik DeleteConsultationAsync: {Result}", isDeleted ? "SUKCES (USUNIĘTO)" : "PORAŻKA (Nie znaleziono w bazie Consultations)");
                 }
                 else
                 {
-                    _logger.LogWarning("Wartość ActiveConsultationId wynosi NULL w C#! Pomijam DeleteConsultationAsync.");
+                    _logger.LogError("Wartość ActiveConsultationId wynosi NULL w C#! Pomijam DeleteConsultationAsync.");
                 }
 
                 // Wywołuje metodę biznesową z encji User // Czyści wskaźnik na aktywną konsultację w encji User
