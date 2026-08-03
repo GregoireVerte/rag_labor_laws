@@ -146,28 +146,21 @@ public class TelegramBotWorker : BackgroundService
             // obsługa dla /reset przy Telegramie
             if (messageText.Trim().Equals("/reset", StringComparison.OrdinalIgnoreCase))
             {
-                //_logger.LogError("=== DIAGNOSTYKA RESETU ===");
-                //_logger.LogError("Użytkownik ID z bazy: {UserId}", user.Id.Value);
-                //_logger.LogError("ActiveConsultationId odczytane z obiektu User: {ConsultationId}",
-                //    user.ActiveConsultationId.HasValue ? user.ActiveConsultationId.Value.ToString() : "BRAK (NULL)");
-                Console.WriteLine("================ DIAGNOSTYKA RESETU ================");
-                Console.WriteLine($"Użytkownik ID z bazy: {user.Id.Value}");
-                Console.WriteLine($"ActiveConsultationId w C#: {(user.ActiveConsultationId.HasValue ? user.ActiveConsultationId.Value.ToString() : "BRAK (NULL)")}");
+                Console.Error.WriteLine($"[RESET] Wywołano /reset dla ChatID: {chatId}, UserId: {user.Id.Value}");
+                Console.Error.WriteLine($"[RESET] Odczytane ActiveConsultationId w C#: {(user.ActiveConsultationId.HasValue ? user.ActiveConsultationId.Value.ToString() : "NULL")}");
 
-                // Sprawdza czy użytkownik miał w ogóle aktywną konsultację
+                // Sprawdza czy użytkownik miał w ogóle aktywną konsultację w profilu
                 if (user.ActiveConsultationId.HasValue)
                 {
                     var activeConsultationId = user.ActiveConsultationId.Value;
-                    _logger.LogError("Rozpoczynam usuwanie konsultacji {ConsultationId}...", activeConsultationId);
+                    Console.Error.WriteLine($"[RESET] Usuwam konsultację o ID: {activeConsultationId}");
 
-                    // Fizycznie kasuje stary wątek i wiadomości z bazy danych
                     var isDeleted = await consultationService.DeleteConsultationAsync(activeConsultationId);
-                    _logger.LogError("Wynik DeleteConsultationAsync: {Result}", isDeleted ? "SUKCES (USUNIĘTO)" : "PORAŻKA (Nie znaleziono w bazie Consultations)");
+                    Console.Error.WriteLine($"[RESET] Wynik usuwania z bazy: {isDeleted}");
                 }
                 else
                 {
-                    _logger.LogError("Wartość ActiveConsultationId wynosi NULL w C#! Pomijam DeleteConsultationAsync.");
-                    Console.WriteLine("Wartość ActiveConsultationId wynosi NULL w C#! Pomijam DeleteConsultationAsync.");
+                    Console.Error.WriteLine("[RESET] BRAK KONSULTACJI - C# odczytał ActiveConsultationId jako NULL!");
                 }
 
                 // Wywołuje metodę biznesową z encji User // Czyści wskaźnik na aktywną konsultację w encji User
@@ -175,8 +168,6 @@ public class TelegramBotWorker : BackgroundService
 
                 // Zapisuje zaktualizowany profil użytkownika do bazy Supabase
                 await userRepository.UpdateAsync(user);
-
-                _logger.LogInformation("Wyczyszczono trwały kontekst rozmowy w bazie danych dla ChatID: {Id}", chatId);
 
                 await botClient.SendMessage(
                     chatId: chatId,
