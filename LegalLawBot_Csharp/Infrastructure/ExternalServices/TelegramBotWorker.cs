@@ -146,21 +146,12 @@ public class TelegramBotWorker : BackgroundService
             // obsługa dla /reset przy Telegramie
             if (messageText.Trim().Equals("/reset", StringComparison.OrdinalIgnoreCase))
             {
-                Console.Error.WriteLine($"[RESET] Wywołano /reset dla ChatID: {chatId}, UserId: {user.Id.Value}");
-                Console.Error.WriteLine($"[RESET] Odczytane ActiveConsultationId w C#: {(user.ActiveConsultationId.HasValue ? user.ActiveConsultationId.Value.ToString() : "NULL")}");
-
                 // Sprawdza czy użytkownik miał w ogóle aktywną konsultację w profilu
                 if (user.ActiveConsultationId.HasValue)
                 {
                     var activeConsultationId = user.ActiveConsultationId.Value;
-                    Console.Error.WriteLine($"[RESET] Usuwam konsultację o ID: {activeConsultationId}");
 
                     var isDeleted = await consultationService.DeleteConsultationAsync(activeConsultationId);
-                    Console.Error.WriteLine($"[RESET] Wynik usuwania z bazy: {isDeleted}");
-                }
-                else
-                {
-                    Console.Error.WriteLine("[RESET] BRAK KONSULTACJI - C# odczytał ActiveConsultationId jako NULL!");
                 }
 
                 // Wywołuje metodę biznesową z encji User // Czyści wskaźnik na aktywną konsultację w encji User

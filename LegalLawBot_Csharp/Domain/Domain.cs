@@ -153,21 +153,9 @@ namespace LegalLawBot_Csharp.Domain
             Email = null!;
             Status = null!;
             Role = null!;
-            ActiveConsultationId = null;
         }
 
-        // Prywatny konstruktor – tylko fabryka może tworzyć obiekt
-        private User(UserId id, EmailAddress email)
-        {
-            Id = id;
-            Email = email;
-            Status = UserStatus.Aktywny; // zawsze startuje jako Aktywny
-            Role = UserRole.Standard; // domyślnie każdy jest zwykłym użytkownikiem
-            DailyQueryCount = 0;   // start z zerem zapytań
-            MaxDailyLimit = 10;    // domyślny limit zapytań na dzień
-        }
-
-        // Jedyny publiczny sposób tworzenia poprawnego użytkownika
+        // Jedyny publiczny sposób tworzenia nowego użytkownika (fabryka)
         public static User Create(UserId id, EmailAddress email)
         {
             // dodatkowe walidacje domenowe można dodać tutaj (np. biznesowe reguły)
@@ -175,7 +163,16 @@ namespace LegalLawBot_Csharp.Domain
             var userId = id ?? throw new ArgumentNullException(nameof(id));
             var userEmail = email ?? throw new ArgumentNullException(nameof(email));
 
-            return new User(userId, userEmail);
+            return new User
+            {
+                Id = userId,
+                Email = userEmail,
+                Status = UserStatus.Aktywny,
+                Role = UserRole.Standard,
+                DailyQueryCount = 0,
+                MaxDailyLimit = 10,
+                ActiveConsultationId = null
+            };
         }
 
         // Metoda dostępna tylko dla logiki biznesowej (np. nadanie uprawnień przez system)
