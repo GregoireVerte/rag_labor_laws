@@ -32,11 +32,21 @@ public class ConsultationController : ControllerBase
     [HttpPost("/webhook/telegram")]
     public IActionResult TelegramWebhook([FromBody] Update update)
     {
-        // Sprawdza czy to zwykła wiadomość tekstowa
-        if (update.Message is not { Text: { } messageText } message)
-            return Ok(); // Jeśli to edycja posta lub załącznik, ignoruje, ale daje 200 OK
+        // Sprawdza czy to zwykła wiadomość tekstowa // Walidacja formatu wiadomości i obsługa wiadomości nie-tekstowych (zdjęcia, naklejki, głosówki)
+        if (update.Message is not { } message)
+            return Ok();
 
         var chatId = message.Chat.Id;
+
+        if (message.Text is not { } messageText || string.IsNullOrWhiteSpace(message.Text))
+        {
+            _ = _botClient.SendMessage(
+                chatId: chatId,
+                text: "🤖 Jako Asystent Prawa Pracy potrafię analizować wyłącznie wiadomości tekstowe. Przepraszam, ale nie rozumiem zdjęć, dokumentów, naklejek ani nagrań głosowych. Proszę, opisz swój problem tekstem."
+            );
+            return Ok();
+        }
+
         var firstName = message.Chat.FirstName ?? "Użytkownik";
 
         // Odpowiada Telegramowi w ułamku sekundy że odebrało przesyłkę
@@ -67,7 +77,7 @@ public class ConsultationController : ControllerBase
                             userByGuid.LinkTelegram(telegramChatId);
                             await scopedUserService.UpdateAsync(userByGuid);
 
-                            await _botClient.SendMessage(chatId, "🎉 Twój profil został pomyślnie powiązany z kontem Asystenta Prawa Pracy! Możesz teraz zadawać pytania bezpośrednio stąd.");
+                            await _botClient.SendMessage(chatId, "🎉 Twój profil został pomyślnie powiązany z kontem Asystenta Prawa Pracy! Możesz teraz zadawać pytania bezpośrednio stąd, a Twoje dzienne limity będą synchronizowane.");
                             return;// Zakończ sukcesem
                         }
                         else
@@ -92,12 +102,24 @@ public class ConsultationController : ControllerBase
                     return;
                 }
 
-                // Obsługa komendy /reset
+                // Obsługa komendy /reset w Webhooku
                 if (messageText.Trim().Equals("/reset", StringComparison.OrdinalIgnoreCase))
                 {
+                    // Jeśli użytkownik ma aktywną konsultację to usuwa ją wraz z jej wiadomościami z bazy
+                    if (user.ActiveConsultationId.HasValue)
+                    {
+                        var activeConsultationId = user.ActiveConsultationId.Value;
+                        await scopedConsultationService.DeleteConsultationAsync(activeConsultationId);
+                    }
+
+                    // Czyszczenie profilu użytkownika (wskaźnika w obiekcie User i zapis w bazie)
                     user.ClearActiveConsultation();
                     await scopedUserService.UpdateAsync(user);
-                    await _botClient.SendMessage(chatId, "Kontekst rozmowy został wyczyszczony! 🧠 Możemy zaczynać od nowa. O co chcesz zapytać?");
+
+                    await _botClient.SendMessage(
+                        chatId,
+                        "Kontekst rozmowy został wyczyszczony, a poprzednia sesja usunięta z bazy! 🧹 Możemy zaczynać od nowa. O co chcesz zapytać? 🧠"
+                    );
                     return;
                 }
 

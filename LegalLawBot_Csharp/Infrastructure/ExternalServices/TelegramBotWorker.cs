@@ -1,4 +1,13 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿/* 
+ * ARCHIWUM / LOGIKA DEPRECATED:
+ * Ta klasa zawiera alternatywną obsługę Telegrama opartą o Long Polling (BackgroundService).
+ * Produkcyjnie cała obsługa botów Telegrama została przeniesiona do ConsultationController.cs 
+ * z wykorzystaniem Webhooka ([HttpPost("/webhook/telegram")]).
+ * 
+ * Serwis NIE JEST zarejestrowany w Program.cs (brak AddHostedService<TelegramBotWorker>).
+ * Plik zachowano wyłącznie jako referencję / środowisko testowe bez użycia Webhooków.
+ */
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Telegram.Bot;
