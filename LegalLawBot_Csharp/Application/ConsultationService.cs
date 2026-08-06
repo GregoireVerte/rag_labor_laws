@@ -1,22 +1,26 @@
 ﻿namespace LegalLawBot_Csharp.Application;
 
 using LegalLawBot_Csharp.Domain;
+using Telegram.Bot;
 
 public class ConsultationService
 {
     private readonly IConsultationRepository _repository;
     private readonly ILegalBrainService _legalBrain;
     private readonly IUserRepository _userRepository;
+    private readonly ITelegramBotClient _botClient; // Klient Telegrama do wysyłania powiadomień
 
     // Dependency Injection - wstrzykuje kontrakty a nie konkretne klasy
     public ConsultationService(
         IConsultationRepository repository,
         ILegalBrainService legalBrain,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        ITelegramBotClient botClient)
     {
         _repository = repository;
         _legalBrain = legalBrain;
         _userRepository = userRepository;
+        _botClient = botClient;
     }
 
     public async Task<Guid> AskQuestionAsync(UserId userId, string rawQuestion, Guid? existingConsultationId = null)
@@ -29,7 +33,7 @@ public class ConsultationService
         var user = await _userRepository.GetByIdAsync(userId)
             ?? throw new InvalidOperationException("Nie znaleziono użytkownika o podanym Id.");
 
-        // ta metoda z Domain.cs rzuci InvalidOperationException, jeśli DailyQueryCount >= MaxDailyLimit
+        // Weryfikacja limitu - ta metoda z Domain.cs rzuci InvalidOperationException, jeśli DailyQueryCount >= MaxDailyLimit
         user.IncrementQueryCount();
 
         // 2. Inicjalizacja konsultacji (nowej lub kontynuacja starej)
@@ -37,16 +41,27 @@ public class ConsultationService
 
         if (existingConsultationId.HasValue)
         {
-            // PRZYPADEK A: Kontynuacja rozmowy
-            consultation = await _repository.GetByIdAsync(existingConsultationId.Value)
-                ?? throw new InvalidOperationException("Nie znaleziono sesji o podanym Id.");
+            var existingConsultation = await _repository.GetByIdAsync(existingConsultationId.Value);
 
-            // Dodaje kolejne pytanie do istniejącego agregatu
-            consultation.AddNextQuestion(query);
+            if (existingConsultation != null)
+            {
+                // PRZYPADEK A: Kontynuacja istniejącej sesji
+                consultation = existingConsultation;
+                // Dodaje kolejne pytanie do istniejącego agregatu
+                consultation.AddNextQuestion(query);
+            }
+            else
+            {
+                // SAMONAPRAWA (Self-Healing):
+                // ID sesji istniało w profilu Usera, ale sesji nie ma już w bazie (np. została usunięta)
+                // Czyści zły wskaźnik i płynnie tworzy nową sesję bez rzucania błędem
+                user.ClearActiveConsultation();
+                consultation = Consultation.Start(query, userId);
+            }
         }
         else
         {
-            // PRZYPADEK B: Startuje nową sesję
+            // PRZYPADEK B: Start nowej sesji
             consultation = Consultation.Start(query, userId);
         }
 
@@ -66,7 +81,7 @@ public class ConsultationService
         consultation.AddResponse(answer, sources);
 
         // 5. Zapisanie efektu pracy w repozytorium konsultacji
-        if (existingConsultationId.HasValue)
+        if (existingConsultation.HasValue && consultation.Id == existingConsultationId.Value)
         {
             await _repository.UpdateAsync(consultation);
         }
