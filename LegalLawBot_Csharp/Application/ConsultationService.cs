@@ -81,7 +81,7 @@ public class ConsultationService
         consultation.AddResponse(answer, sources);
 
         // 5. Zapisanie efektu pracy w repozytorium konsultacji
-        if (existingConsultation.HasValue && consultation.Id == existingConsultationId.Value)
+        if (existingConsultationId.HasValue && consultation.Id == existingConsultationId.Value)
         {
             await _repository.UpdateAsync(consultation);
         }
@@ -126,11 +126,40 @@ public class ConsultationService
     }
 
     // Usuwa wskazaną sesję wraz z historią - DELETE
+    // Usunięcie sesji jest razem z obsługą czyszczenia User.ActiveConsultationId oraz powiadomieniem na Telegram
     public async Task<bool> DeleteConsultationAsync(Guid id)
     {
         var consultation = await _repository.GetByIdAsync(id);
         if (consultation == null) return false;
 
+        // Pobiera właściciela konsultacji
+        var user = await _userRepository.GetByIdAsync(consultation.CreatedBy);
+
+        if (user != null && user.ActiveConsultationId == id)
+        {
+            // Jeśli usuwana konsultacja była aktywna to czyści profil użytkownika
+            user.ClearActiveConsultation();
+            await _userRepository.UpdateAsync(user);
+
+            // Jeśli użytkownik ma sparowany Telegram to wysyła powiadomienie
+            if (user.TelegramChatId != null)
+            {
+                try
+                {
+                    await _botClient.SendMessage(
+                        chatId: user.TelegramChatId.Value,
+                        text: "Kontekst rozmowy został wyczyszczony z poziomu przeglądarki, a sesja usunięta! 🧹 Możemy zaczynać od nowa. O co chcesz zapytać?"
+                    );
+                }
+                catch (Exception ex)
+                {
+                    // Loguje ewentualny błąd wysyłki (np. jeśli użytkownik zablokował bota)
+                    Console.WriteLine($"[Telegram Sync Error]: {ex.Message}");
+                }
+            }
+        }
+
+        // Usunięcie konsultacji i powiązanych wiadomości z bazy
         await _repository.DeleteAsync(consultation);
         return true;
     }
