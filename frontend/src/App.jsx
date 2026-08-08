@@ -44,6 +44,8 @@ function App() {
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [queryCount, setQueryCount] = useState(0);
   const [maxLimit, setMaxLimit] = useState(10);
+  // Stan informujący czy użytkownik ma już sparowany Telegram
+  const [isTelegramLinked, setIsTelegramLinked] = useState(false);
 
   // Funkcja obsługująca rejestrację nowego konta
   const handleRegister = async (e) => {
@@ -128,7 +130,7 @@ function App() {
     try {
       const { data, error } = await supabase
         .from("Users")
-        .select("DailyQueryCount, MaxDailyLimit")
+        .select("DailyQueryCount, MaxDailyLimit, TelegramChatId")
         .eq("Id", user.id)
         .single();
 
@@ -137,6 +139,9 @@ function App() {
       if (data) {
         setQueryCount(data.DailyQueryCount);
         setMaxLimit(data.MaxDailyLimit);
+
+        // Jeśli TelegramChatId nie jest nullem ani pusty -> ustawia na true
+        setIsTelegramLinked(!!data.TelegramChatId);
 
         // Jeśli licznik dobił do limitu natychmiast blokuje interfejs
         if (data.DailyQueryCount >= data.MaxDailyLimit) {
@@ -1051,7 +1056,13 @@ function App() {
             </div>
 
             {/* KOMPONENT POŁĄCZENIA TELEGRAMA --> TELEGRAM LINKER */}
-            {user && <TelegramLinker userId={user.id} disabled={loading} />}
+            {user && (
+              <TelegramLinker
+                userId={user.id}
+                disabled={loading}
+                isLinked={isTelegramLinked}
+              />
+            )}
 
             <button
               onClick={() => setShowSettingsModal(false)}
