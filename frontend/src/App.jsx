@@ -67,6 +67,7 @@ function App() {
       setUser(data.user);
       setEmail("");
       setPassword("");
+      startNewChat(); // <--- Czyszczenie starej sesji i localStorage!
     }
     setLoading(false);
   };
@@ -89,6 +90,7 @@ function App() {
       setUser(data.user);
       setEmail("");
       setPassword("");
+      startNewChat(); // <--- Czyszczenie starej sesji i localStorage!
     }
     setLoading(false);
   };

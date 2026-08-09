@@ -43,16 +43,17 @@ public class ConsultationService
         {
             var existingConsultation = await _repository.GetByIdAsync(existingConsultationId.Value);
 
-            if (existingConsultation != null)
+            // Zabezpieczenie: Sprawdza czy sesja istnieje oraz czy należy do tego użytkownika (CreatedBy == userId)
+            if (existingConsultation != null && existingConsultation.CreatedBy == userId)
             {
-                // PRZYPADEK A: Kontynuacja istniejącej sesji
+                // PRZYPADEK A: Kontynuacja istniejącej własnej sesji
                 consultation = existingConsultation;
                 // Dodaje kolejne pytanie do istniejącego agregatu
                 consultation.AddNextQuestion(query);
             }
             else
             {
-                // SAMONAPRAWA (Self-Healing):
+                // SAMONAPRAWA (Self-Healing) + BEZPIECZEŃSTWO (Sesja nie istnieje LUB należy do innego użytkownika!)
                 // ID sesji istniało w profilu Usera, ale sesji nie ma już w bazie (np. została usunięta)
                 // Czyści zły wskaźnik i płynnie tworzy nową sesję bez rzucania błędem
                 user.ClearActiveConsultation();
