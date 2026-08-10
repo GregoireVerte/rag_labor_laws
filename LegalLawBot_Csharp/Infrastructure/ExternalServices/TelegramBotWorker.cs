@@ -200,8 +200,8 @@ public class TelegramBotWorker : BackgroundService
                 user.SetActiveConsultation(consultationId);
                 await userRepository.UpdateAsync(user);
 
-                // Pobiera szczegóły tej sesji, żeby wyciągnąć treść odpowiedzi AI
-                var details = await consultationService.GetConsultationDetailsAsync(consultationId);
+                // Pobiera szczegóły tej sesji, żeby wyciągnąć treść odpowiedzi AI (z przekazaniem user.Id)
+                var details = await consultationService.GetConsultationDetailsAsync(consultationId, user.Id);
 
                 // Ostatnia wiadomość w historii to odpowiedź asystenta (z małej litery "content")
                 var aiResponse = details?.History.LastOrDefault()?.content

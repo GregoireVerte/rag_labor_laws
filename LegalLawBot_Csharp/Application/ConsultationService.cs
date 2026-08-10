@@ -109,11 +109,14 @@ public class ConsultationService
         ));
     }
 
-    // Pobiera pełną historię jednej sesji
-    public async Task<ConsultationDetailsDto?> GetConsultationDetailsAsync(Guid id)
+    // Pobiera pełną historię jednej sesji z weryfikacją właściciela
+    public async Task<ConsultationDetailsDto?> GetConsultationDetailsAsync(Guid id, UserId userId)
     {
         var consultation = await _repository.GetByIdAsync(id);
-        if (consultation == null) return null;
+
+        // Jeśli konsultacja nie istnieje LUB należy do innego użytkownika -> zwraca null
+        if (consultation == null || consultation.CreatedBy != userId)
+            return null;
 
         var history = consultation.Messages
             .OrderBy(m => m.CreatedAt) // Układa wiadomości od najstarszej do najnowszej

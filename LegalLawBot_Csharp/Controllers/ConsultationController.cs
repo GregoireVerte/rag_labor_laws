@@ -276,10 +276,13 @@ public class ConsultationController : ControllerBase
 
     // Było: [HttpGet("{id}")]
     [HttpGet("/history/{id}")]
-    public async Task<IActionResult> GetById(Guid id)
+    public async Task<IActionResult> GetById(Guid id, [FromQuery] Guid userId)
     {
-        var details = await _consultationService.GetConsultationDetailsAsync(id);
-        if (details == null) return NotFound("Nie znaleziono takiej konsultacji.");
+        var domainUserId = UserId.Create(userId);
+        var details = await _consultationService.GetConsultationDetailsAsync(id, domainUserId);
+
+        if (details == null)
+            return NotFound("Nie znaleziono konsultacji lub brak do niej uprawnień.");
 
         return Ok(details);
     }

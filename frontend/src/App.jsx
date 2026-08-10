@@ -159,8 +159,11 @@ function App() {
 
   // Ładowanie historii konkretnej sesji
   const loadHistory = async (id) => {
+    if (!user) return;
     try {
-      const response = await axios.get(`${API_BASE_URL}/history/${id}`);
+      const response = await axios.get(
+        `${API_BASE_URL}/history/${id}?userId=${user.id}`,
+      );
 
       // Sprawdza czy .NET przysłał obiekt z polem 'history', jeśli nie, bierze czysty response
       const historyArray = response.data.history || response.data;
