@@ -46,6 +46,10 @@ function App() {
   const [maxLimit, setMaxLimit] = useState(10);
   // Stan informujący czy użytkownik ma już sparowany Telegram
   const [isTelegramLinked, setIsTelegramLinked] = useState(false);
+  // Stany do obsługi zmiany adresu e-mail
+  const [newEmail, setNewEmail] = useState("");
+  const [emailUpdateMsg, setEmailUpdateMsg] = useState("");
+  const [emailUpdateLoading, setEmailUpdateLoading] = useState(false);
 
   // Funkcja obsługująca rejestrację nowego konta
   const handleRegister = async (e) => {
@@ -370,6 +374,39 @@ function App() {
       console.error("Błąd podczas zmiany tytułu sesji:", error);
       setEditingSessionId(null);
     }
+  };
+
+  const handleUpdateEmail = async (e) => {
+    e.preventDefault();
+    if (!newEmail.trim() || newEmail === user.email) return;
+
+    setEmailUpdateLoading(true);
+    setEmailUpdateMsg("");
+
+    try {
+      // 1. Aktualizacja w Supabase Auth (wysyła maila weryfikacyjnego)
+      const { data, error } = await supabase.auth.updateUser({
+        email: newEmail,
+      });
+      if (error) throw error;
+
+      // 2. Aktualizacja adresu w tabeli public.Users
+      const { error: dbError } = await supabase
+        .from("Users")
+        .update({ Email: newEmail })
+        .eq("Id", user.id);
+
+      if (dbError)
+        console.error("Błąd aktualizacji e-mail w bazie Users:", dbError);
+
+      setEmailUpdateMsg(
+        "📧 Na nowy adres e-mail wysłano link potwierdzający. Potwierdź zmianę w skrzynce!",
+      );
+      setNewEmail("");
+    } catch (err) {
+      setEmailUpdateMsg(`⚠️ Błąd: ${err.message}`);
+    }
+    setEmailUpdateLoading(false);
   };
 
   // Jeśli użytkownik nie jest zalogowany, przerywa i pokazuje ekran logowania/rejestracji
@@ -1068,6 +1105,79 @@ function App() {
                 isLinked={isTelegramLinked}
               />
             )}
+
+            {/* FORMULARZ ZMIANY E-MAIL */}
+            <div
+              className="email-change-box"
+              style={{
+                marginTop: "20px",
+                padding: "20px",
+                backgroundColor: "#222",
+                border: "1px solid #333",
+                borderRadius: "8px",
+              }}
+            >
+              <h3 style={{ margin: "0 0 10px 0" }}>✉️ Zmiana adresu e-mail</h3>
+              <form
+                onSubmit={handleUpdateEmail}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                }}
+              >
+                <label style={{ fontSize: "13px", color: "#aaa" }}>
+                  Aktualny adres:{" "}
+                  <strong style={{ color: "#fff" }}>{user?.email}</strong>
+                </label>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <input
+                    type="email"
+                    placeholder="Wprowadź nowy adres e-mail..."
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    required
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      borderRadius: "4px",
+                      border: "1px solid #444",
+                      backgroundColor: "#333",
+                      color: "#fff",
+                      fontSize: "14px",
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={emailUpdateLoading || !newEmail.trim()}
+                    style={{
+                      padding: "8px 15px",
+                      backgroundColor: emailUpdateLoading ? "#555" : "#0066cc",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "4px",
+                      fontWeight: "bold",
+                      cursor: emailUpdateLoading ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {emailUpdateLoading ? "Zapisywanie..." : "Zmień e-mail"}
+                  </button>
+                </div>
+              </form>
+              {emailUpdateMsg && (
+                <div
+                  style={{
+                    marginTop: "10px",
+                    fontSize: "13px",
+                    color: emailUpdateMsg.includes("⚠️")
+                      ? "#ff6b6b"
+                      : "#4ecd64",
+                  }}
+                >
+                  {emailUpdateMsg}
+                </div>
+              )}
+            </div>
 
             <button
               onClick={() => setShowSettingsModal(false)}
