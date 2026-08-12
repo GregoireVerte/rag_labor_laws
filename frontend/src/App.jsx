@@ -385,28 +385,26 @@ function App() {
 
     try {
       // 1. Aktualizacja w Supabase Auth (wysyła maila weryfikacyjnego)
-      const { data, error } = await supabase.auth.updateUser({
-        email: newEmail,
-      });
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
       if (error) throw error;
 
-      // 2. Aktualizacja adresu w tabeli public.Users
-      const { error: dbError } = await supabase
-        .from("Users")
-        .update({ Email: newEmail })
-        .eq("Id", user.id);
+      // 2. Aktualizacja adresu w tabeli public.Users przez backend C#
+      await axios.patch(`${API_BASE_URL}/user/email`, {
+        user_id: user.id,
+        email: newEmail,
+      });
 
-      if (dbError)
-        console.error("Błąd aktualizacji e-mail w bazie Users:", dbError);
-
-      setEmailUpdateMsg(
-        "📧 Na nowy adres e-mail wysłano link potwierdzający. Potwierdź zmianę w skrzynce!",
+      alert(
+        "📧 Na nowy adres e-mail wysłano link potwierdzający.\n\nZe względów bezpieczeństwa zostałeś wylogowany. Potwierdź zmianę w swojej skrzynce e-mail, a następnie zaloguj się nowym adresem!",
       );
-      setNewEmail("");
+
+      // 3. Automatyczne wylogowanie – czyści stan i localStorage
+      await handleLogout();
+      setShowSettingsModal(false);
     } catch (err) {
       setEmailUpdateMsg(`⚠️ Błąd: ${err.message}`);
+      setEmailUpdateLoading(false);
     }
-    setEmailUpdateLoading(false);
   };
 
   // Jeśli użytkownik nie jest zalogowany, przerywa i pokazuje ekran logowania/rejestracji

@@ -348,6 +348,22 @@ public class ConsultationController : ControllerBase
             return StatusCode(500, $"Błąd serwera: {ex.Message}");
         }
     }
+    [HttpPatch("/user/email")]
+    public async Task<IActionResult> UpdateEmail([FromBody] UpdateEmailRequest request)
+    {
+        try
+        {
+            var domainUserId = UserId.Create(request.UserId);
+            var updated = await _consultationService.UpdateUserEmailAsync(domainUserId, request.Email);
+
+            if (!updated) return NotFound("Nie znaleziono użytkownika.");
+            return Ok(new { Message = "Pomyślnie zaktualizowano adres e-mail w bazie." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Błąd serwera: {ex.Message}");
+        }
+    }
 }
 
 // Prosty model (DTO) do odebrania pytania z JSONa; dodany opcjonalny parametr ConsultationId //
@@ -362,4 +378,8 @@ public record UpdateTitleRequest(string Title);
 public record LinkTelegramRequest(
     long ChatId,
     [property: System.Text.Json.Serialization.JsonPropertyName("user_id")] Guid AdminId
+);
+public record UpdateEmailRequest(
+    [property: System.Text.Json.Serialization.JsonPropertyName("user_id")] Guid UserId,
+    string Email
 );

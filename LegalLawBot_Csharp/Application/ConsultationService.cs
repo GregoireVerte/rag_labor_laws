@@ -193,6 +193,22 @@ public class ConsultationService
 
         return (answer, sources);
     }
+    // Zmiana adresu e-mail użytkownika
+    public async Task<bool> UpdateUserEmailAsync(UserId userId, string newEmail)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) return false;
+
+        // 1. Tworzenie bezpiecznego obiektu wartości (tu odpali się walidacja Regex z Domain)
+        var domainEmail = EmailAddress.Create(newEmail);
+
+        // 2. Wywołanie istniejącej metody domenowej w encji User
+        user.ChangeEmail(domainEmail);
+
+        // 3. Zapis zmian w Supabase przez repozytorium
+        await _userRepository.UpdateAsync(user);
+        return true;
+    }
 }
 
 public record ConsultationSummaryDto(Guid Id, DateTime CreatedAt, string Title);
