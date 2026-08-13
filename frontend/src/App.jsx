@@ -113,6 +113,12 @@ function App() {
       setSessionId(null);
       setIsLimitReached(false);
       setQueryCount(0);
+
+      // Czyszczenie stanów edycji danych
+      setEmailUpdateLoading(false);
+      setNewEmail("");
+      setEmailUpdateMsg("");
+
       localStorage.removeItem("chat_session_id");
     }
   };
@@ -403,7 +409,10 @@ function App() {
       setShowSettingsModal(false);
     } catch (err) {
       setEmailUpdateMsg(`⚠️ Błąd: ${err.message}`);
+    } finally {
+      // ZAWSZE odblokowuje przycisk i czyści pole formularza
       setEmailUpdateLoading(false);
+      setNewEmail("");
     }
   };
 
