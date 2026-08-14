@@ -51,6 +51,15 @@ function App() {
   const [emailUpdateMsg, setEmailUpdateMsg] = useState("");
   const [emailUpdateLoading, setEmailUpdateLoading] = useState(false);
 
+  // Stany do obsługi pokazywania/ukrywania haseł (oko 👁️)
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
+  // Stany do obsługi zmiany hasła w Ustawieniach
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordUpdateMsg, setPasswordUpdateMsg] = useState("");
+  const [passwordUpdateLoading, setPasswordUpdateLoading] = useState(false);
+
   // Funkcja obsługująca rejestrację nowego konta
   const handleRegister = async (e) => {
     e.preventDefault(); // Zapobiega przeładowaniu strony po wysłaniu formularza
@@ -416,6 +425,33 @@ function App() {
     }
   };
 
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    if (!newPassword.trim() || newPassword.length < 6) {
+      setPasswordUpdateMsg("⚠️ Hasło musi mieć co najmniej 6 znaków.");
+      return;
+    }
+
+    setPasswordUpdateLoading(true);
+    setPasswordUpdateMsg("");
+
+    try {
+      // Aktualizacja hasła bezpośrednio w Supabase Auth
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      setPasswordUpdateMsg("✅ Hasło zostało pomyślnie zmienione!");
+      setNewPassword("");
+    } catch (err) {
+      setPasswordUpdateMsg(`⚠️ Błąd: ${err.message}`);
+    } finally {
+      setPasswordUpdateLoading(false);
+    }
+  };
+
   // Jeśli użytkownik nie jest zalogowany, przerywa i pokazuje ekran logowania/rejestracji
   if (!user) {
     return (
@@ -474,19 +510,38 @@ function App() {
               style={{ display: "flex", flexDirection: "column", gap: "5px" }}
             >
               <label style={{ fontSize: "14px", color: "#aaa" }}>Hasło:</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                style={{
-                  padding: "10px",
-                  borderRadius: "4px",
-                  border: "1px solid #444",
-                  backgroundColor: "#333",
-                  color: "#fff",
-                }}
-              />
+              <div style={{ display: "flex", gap: "5px" }}>
+                <input
+                  type={showAuthPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  style={{
+                    flex: 1,
+                    padding: "10px",
+                    borderRadius: "4px",
+                    border: "1px solid #444",
+                    backgroundColor: "#333",
+                    color: "#fff",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAuthPassword(!showAuthPassword)}
+                  style={{
+                    padding: "0 10px",
+                    backgroundColor: "#333",
+                    border: "1px solid #444",
+                    color: "#aaa",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontSize: "16px",
+                  }}
+                  title={showAuthPassword ? "Ukryj hasło" : "Pokaż hasło"}
+                >
+                  {showAuthPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
             </div>
 
             {authError && (
@@ -1182,6 +1237,96 @@ function App() {
                   }}
                 >
                   {emailUpdateMsg}
+                </div>
+              )}
+            </div>
+
+            {/* FORMULARZ ZMIANY HASŁA */}
+            <div
+              className="password-change-box"
+              style={{
+                marginTop: "20px",
+                padding: "20px",
+                backgroundColor: "#222",
+                border: "1px solid #333",
+                borderRadius: "8px",
+              }}
+            >
+              <h3 style={{ margin: "0 0 10px 0" }}>🔑 Zmiana hasła</h3>
+              <form
+                onSubmit={handleUpdatePassword}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                }}
+              >
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <div style={{ flex: 1, display: "flex", gap: "5px" }}>
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="Wprowadź nowe hasło (min. 6 znaków)..."
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      style={{
+                        flex: 1,
+                        padding: "8px 12px",
+                        borderRadius: "4px",
+                        border: "1px solid #444",
+                        backgroundColor: "#333",
+                        color: "#fff",
+                        fontSize: "14px",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      style={{
+                        padding: "0 10px",
+                        backgroundColor: "#333",
+                        border: "1px solid #444",
+                        color: "#aaa",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        fontSize: "16px",
+                      }}
+                      title={showNewPassword ? "Ukryj hasło" : "Pokaż hasło"}
+                    >
+                      {showNewPassword ? "🙈" : "👁️"}
+                    </button>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={passwordUpdateLoading || !newPassword.trim()}
+                    style={{
+                      padding: "8px 15px",
+                      backgroundColor: passwordUpdateLoading
+                        ? "#555"
+                        : "#28a745", // Zielony kolor akcentuje bezpieczną zmianę hasła
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "4px",
+                      fontWeight: "bold",
+                      cursor: passwordUpdateLoading ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {passwordUpdateLoading ? "Zapisywanie..." : "Zmień hasło"}
+                  </button>
+                </div>
+              </form>
+              {passwordUpdateMsg && (
+                <div
+                  style={{
+                    marginTop: "10px",
+                    fontSize: "13px",
+                    color: passwordUpdateMsg.includes("⚠️")
+                      ? "#ff6b6b"
+                      : "#4ecd64",
+                  }}
+                >
+                  {passwordUpdateMsg}
                 </div>
               )}
             </div>
