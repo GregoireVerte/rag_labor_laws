@@ -123,10 +123,17 @@ function App() {
       setIsLimitReached(false);
       setQueryCount(0);
 
-      // Czyszczenie stanów edycji danych
+      // Czyszczenie stanów edycji danych e-maila
       setEmailUpdateLoading(false);
       setNewEmail("");
       setEmailUpdateMsg("");
+
+      // Czyszczenie stanów hasła i widoczności oka
+      setNewPassword("");
+      setPasswordUpdateMsg("");
+      setPasswordUpdateLoading(false);
+      setShowAuthPassword(false);
+      setShowNewPassword(false);
 
       localStorage.removeItem("chat_session_id");
     }
@@ -369,6 +376,15 @@ function App() {
     }
   };
 
+  // Funkcja bezpiecznego zamykania modalu ustawień wraz z czyszczeniem komunikatów i pól
+  const closeSettingsModal = () => {
+    setShowSettingsModal(false);
+    setPasswordUpdateMsg("");
+    setEmailUpdateMsg("");
+    setNewEmail("");
+    setNewPassword("");
+  };
+
   const handleUpdateTitle = async (id, newTitle) => {
     if (!newTitle.trim()) {
       setEditingSessionId(null);
@@ -415,7 +431,7 @@ function App() {
 
       // 3. Automatyczne wylogowanie – czyści stan i localStorage
       await handleLogout();
-      setShowSettingsModal(false);
+      closeSettingsModal();
     } catch (err) {
       setEmailUpdateMsg(`⚠️ Błąd: ${err.message}`);
     } finally {
@@ -1146,7 +1162,7 @@ function App() {
                 ⚙️ Ustawienia konta
               </h3>
               <button
-                onClick={() => setShowSettingsModal(false)}
+                onClick={closeSettingsModal}
                 style={{
                   background: "transparent",
                   border: "none",
@@ -1332,7 +1348,7 @@ function App() {
             </div>
 
             <button
-              onClick={() => setShowSettingsModal(false)}
+              onClick={closeSettingsModal}
               style={{
                 marginTop: "20px",
                 width: "100%",
