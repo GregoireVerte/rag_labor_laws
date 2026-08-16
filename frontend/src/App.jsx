@@ -60,6 +60,10 @@ function App() {
   const [passwordUpdateMsg, setPasswordUpdateMsg] = useState("");
   const [passwordUpdateLoading, setPasswordUpdateLoading] = useState(false);
 
+  // Stany do obsługi resetu hasła ("Zapomniałem hasła")
+  const [forgotMsg, setForgotMsg] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+
   // Funkcja obsługująca rejestrację nowego konta
   const handleRegister = async (e) => {
     e.preventDefault(); // Zapobiega przeładowaniu strony po wysłaniu formularza
@@ -106,6 +110,30 @@ function App() {
       startNewChat(); // <--- Czyszczenie starej sesji i localStorage!
     }
     setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      setForgotMsg("⚠️ Wpisz swój adres e-mail w polu powyżej.");
+      return;
+    }
+
+    setForgotLoading(true);
+    setForgotMsg("");
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin, // Automatycznie wykryje Vercel lub localhost
+      });
+
+      if (error) throw error;
+
+      setForgotMsg("📧 Link do resetu hasła został wysłany na Twój e-mail!");
+    } catch (err) {
+      setForgotMsg(`⚠️ Błąd: ${err.message}`);
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   // Funkcja obsługująca wylogowanie użytkownika
@@ -559,6 +587,37 @@ function App() {
                 </button>
               </div>
             </div>
+
+            {/* OPCJA: ZAPOMNIAŁEM / ZAPOMNIAŁAM HASŁA (TYLKO W TRYBIE LOGOWANIA) */}
+            {authMode === "login" && (
+              <div style={{ textAlign: "right", marginTop: "-5px" }}>
+                <span
+                  onClick={handleForgotPassword}
+                  style={{
+                    fontSize: "12px",
+                    color: "#0088ff",
+                    cursor: forgotLoading ? "not-allowed" : "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  {forgotLoading
+                    ? "Wysyłanie..."
+                    : "Zapomniałeś / zapomniałaś hasła?"}
+                </span>
+              </div>
+            )}
+
+            {forgotMsg && (
+              <div
+                style={{
+                  fontSize: "13px",
+                  textAlign: "center",
+                  color: forgotMsg.includes("⚠️") ? "#ff6b6b" : "#4ecd64",
+                }}
+              >
+                {forgotMsg}
+              </div>
+            )}
 
             {authError && (
               <div
