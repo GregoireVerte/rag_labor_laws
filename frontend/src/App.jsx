@@ -236,6 +236,30 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Nasłuchiwanie sesji Supabase Auth przy starcie (w tym linków z e-maila)
+  useEffect(() => {
+    // Sprawdza czy użytkownik ma aktywną sesję w przeglądarce
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setUser(session.user);
+    });
+
+    // Nasłuchuje zdarzeń z linków aktywacyjnych / resetujących
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+
+        // Jeśli użytkownik wszedł z maila "Zapomniałem hasła"
+        if (event === "PASSWORD_RECOVERY") {
+          setShowSettingsModal(true); // Automatycznie otwiera modal Ustawień
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Start przy uruchomieniu lub zmianie użytkownika: pobiera sesje, historię i limity
   useEffect(() => {
     if (user) {
