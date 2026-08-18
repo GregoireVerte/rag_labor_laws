@@ -152,7 +152,7 @@ class LaborLawRAG:
         
         res = self.groq.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile",
+            model="qwen/qwen3.6-27b",
             temperature=0
         )
         return res.choices[0].message.content
@@ -197,7 +197,7 @@ class LaborLawRAG:
         ## wysłanie całej listy do Groq
         chat = self.groq.chat.completions.create(
             messages=messages,
-            model="llama-3.3-70b-versatile",
+            model="qwen/qwen3.6-27b",
             temperature=0.1 ### aby odpowiedzi były maksymalnie precyzyjne i mało kreatywne
         )
 
