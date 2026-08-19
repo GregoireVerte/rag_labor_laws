@@ -135,6 +135,12 @@ public class LegalLawBotDbContext : DbContext
             entity.Property(u => u.MaxDailyLimit)
                 .IsRequired()
                 .HasDefaultValue(10); // Baza danych automatycznie przypisze limit 10
+
+            entity.Property(e => e.EncryptedLlmKey).HasColumnName("EncryptedLlmKey");
+
+            entity.Property(e => e.LlmKeyIv).HasColumnName("LlmKeyIv");
+
+            entity.Property(e => e.LlmProvider).HasColumnName("LlmProvider");
         });
 
         base.OnModelCreating(modelBuilder);

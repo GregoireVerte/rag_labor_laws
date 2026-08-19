@@ -146,6 +146,12 @@ namespace LegalLawBot_Csharp.Domain
         public int DailyQueryCount { get; private set; }
         public int MaxDailyLimit { get; private set; }
 
+        public string? EncryptedLlmKey { get; set; }
+
+        public string? LlmKeyIv { get; set; }
+
+        public string? LlmProvider { get; set; }
+
         // Pusty konstruktor - wymagany przez EF Core do odtwarzania użytkownika z bazy
         private User()
         {
