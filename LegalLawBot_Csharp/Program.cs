@@ -3,6 +3,7 @@ using LegalLawBot_Csharp.Domain;
 using LegalLawBot_Csharp.Infrastructure.ExternalServices;
 using LegalLawBot_Csharp.Infrastructure.Persistence;
 using LegalLawBot_Csharp.Infrastructure.BackgroundServices;
+using LegalLawBot_Csharp.Infrastructure.Security;
 // using LegalLawBot_Csharp.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -10,10 +11,13 @@ using Telegram.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Rejestracja ConsultationService (Warstwa Aplikacji)
+// Rejestracja ConsultationService (Warstwa Aplikacji)
 builder.Services.AddScoped<ConsultationService>();
 
-// 2. Konfiguracja połączenia z Pythonem na Renderze
+// Rejestracja serwisu szyfrującego klucze LLM
+builder.Services.AddSingleton<IEncryptionService, AesGcmEncryptionService>();
+
+// Konfiguracja połączenia z Pythonem na Renderze
 builder.Services.AddHttpClient<ILegalBrainService, LegalBrainServiceClient>(client =>
 {
     // ADRES Z RENDERA (Publiczny bo darmowy Render blokuje ruch internal przychodzący)
@@ -27,7 +31,7 @@ builder.Services.AddHttpClient<ILegalBrainService, LegalBrainServiceClient>(clie
     client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
 });
 
-// 3. Rejestracja Repozytorium (Prawdziwe - EF Core)
+// Rejestracja Repozytorium (Prawdziwe - EF Core)
 // Teraz aplikacja będzie zapisywać dane w Supabase zamiast w pamięci RAM
 builder.Services.AddScoped<IConsultationRepository, EfConsultationRepository>();
 builder.Services.AddScoped<IUserRepository, EfUserRepository>();
