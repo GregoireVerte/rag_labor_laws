@@ -364,6 +364,22 @@ public class ConsultationController : ControllerBase
             return StatusCode(500, $"Błąd serwera: {ex.Message}");
         }
     }
+    [HttpPatch("/user/llm-key")]
+    public async Task<IActionResult> UpdateLlmKey([FromBody] UpdateLlmKeyRequest request)
+    {
+        try
+        {
+            var domainUserId = UserId.Create(request.UserId);
+            var updated = await _consultationService.UpdateUserLlmKeyAsync(domainUserId, request.ApiKey, request.Provider);
+
+            if (!updated) return NotFound("Nie znaleziono użytkownika.");
+            return Ok(new { Message = "Pomyślnie zaktualizowano własny klucz API LLM w bazie." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Błąd serwera: {ex.Message}");
+        }
+    }
 }
 
 // Prosty model (DTO) do odebrania pytania z JSONa; dodany opcjonalny parametr ConsultationId //
@@ -382,4 +398,9 @@ public record LinkTelegramRequest(
 public record UpdateEmailRequest(
     [property: System.Text.Json.Serialization.JsonPropertyName("user_id")] Guid UserId,
     string Email
+);
+public record UpdateLlmKeyRequest(
+    [property: System.Text.Json.Serialization.JsonPropertyName("user_id")] Guid UserId,
+    string? ApiKey,
+    string? Provider
 );

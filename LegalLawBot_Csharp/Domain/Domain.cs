@@ -192,6 +192,23 @@ namespace LegalLawBot_Csharp.Domain
         {
             Email = newEmail;
         }
+
+        // Bezpieczne ustawianie zaszyfrowanego klucza API LLM
+        public void SetLlmKey(string encryptedKey, string iv, string provider)
+        {
+            EncryptedLlmKey = encryptedKey;
+            LlmKeyIv = iv;
+            LlmProvider = provider;
+        }
+
+        // Czyszczenie klucza (powrót do domyślnego LLM)
+        public void ClearLlmKey()
+        {
+            EncryptedLlmKey = null;
+            LlmKeyIv = null;
+            LlmProvider = null;
+        }
+
         // metoda biznesowa do bezpiecznego powiązania konta z Telegramem
         public void LinkTelegram(TelegramChatId telegramChatId)
         {

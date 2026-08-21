@@ -2,6 +2,7 @@
 
 using LegalLawBot_Csharp.Domain;
 using Telegram.Bot;
+using LegalLawBot_Csharp.Infrastructure.Security;
 
 public class ConsultationService
 {
@@ -9,18 +10,21 @@ public class ConsultationService
     private readonly ILegalBrainService _legalBrain;
     private readonly IUserRepository _userRepository;
     private readonly ITelegramBotClient _botClient; // Klient Telegrama do wysyłania powiadomień
+    private readonly IEncryptionService _encryptionService;
 
     // Dependency Injection - wstrzykuje kontrakty a nie konkretne klasy
     public ConsultationService(
         IConsultationRepository repository,
         ILegalBrainService legalBrain,
         IUserRepository userRepository,
-        ITelegramBotClient botClient)
+        ITelegramBotClient botClient,
+        IEncryptionService encryptionService)
     {
         _repository = repository;
         _legalBrain = legalBrain;
         _userRepository = userRepository;
         _botClient = botClient;
+        _encryptionService = encryptionService;
     }
 
     public async Task<Guid> AskQuestionAsync(UserId userId, string rawQuestion, Guid? existingConsultationId = null)
@@ -206,6 +210,27 @@ public class ConsultationService
         user.ChangeEmail(domainEmail);
 
         // 3. Zapis zmian w Supabase przez repozytorium
+        await _userRepository.UpdateAsync(user);
+        return true;
+    }
+    // Bezpieczny zapis lub czyszczenie klucza API LLM użytkownika
+    public async Task<bool> UpdateUserLlmKeyAsync(UserId userId, string? apiKey, string? provider)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) return false;
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            // Jeśli przesłano pusty klucz -> czyści dane w bazie
+            user.ClearLlmKey();
+        }
+        else
+        {
+            // Szyfrowanie klucza algorytmem AES-256-GCM z unikalnym IV
+            var (encryptedBase64, ivBase64) = _encryptionService.Encrypt(apiKey.Trim());
+            user.SetLlmKey(encryptedBase64, ivBase64, provider ?? "openrouter");
+        }
+
         await _userRepository.UpdateAsync(user);
         return true;
     }
