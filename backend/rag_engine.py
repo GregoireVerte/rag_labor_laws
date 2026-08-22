@@ -3,6 +3,7 @@ import time
 import random
 from dotenv import load_dotenv
 from groq import Groq
+from openai import OpenAI
 from qdrant_client import QdrantClient
 from utils import get_embeddings, query_hf_api
 
@@ -22,6 +23,21 @@ class LaborLawRAG:
 
         ### URL do modeli na Hugging Face
         self.rerank_url = "https://router.huggingface.co/hf-inference/models/BAAI/bge-reranker-v2-m3"
+
+    def _get_llm_client(self, custom_api_key=None, provider=None):
+        if custom_api_key and custom_api_key.strip():
+            prov = (provider or "openrouter").lower()
+            if prov == "openrouter":
+                ### OpenRouter używa standardu OpenAI
+                return OpenAI(base_url="https://openrouter.ai/api/v1", api_key=custom_api_key.strip()), "qwen/qwen-2.5-72b-instruct"
+            elif prov == "google":
+                ### Google AI Studio jest w standardzie OpenAI
+                return OpenAI(base_url="https://generativelanguage.googleapis.com/v1beta/openai/", api_key=custom_api_key.strip()), "gemini-2.5-flash"
+            elif prov == "groq":
+                return Groq(api_key=custom_api_key.strip()), "qwen/qwen3.6-27b"
+
+        ## Domyślny fallback systemowy (Groq)
+        return self.groq, "qwen/qwen3.6-27b"
 
     def get_context(self, query, limit=50):
         dense_vec = None
@@ -133,7 +149,7 @@ class LaborLawRAG:
         # zwraca sources bez funkcji sorted()
         return "\n\n".join(context_parts), sources
 
-    def rewrite_query(self, question, chat_history):
+    def rewrite_query(self, question, chat_history, llm_client, model_name):
         if not chat_history:
             return question
             
@@ -150,16 +166,20 @@ class LaborLawRAG:
         
         SAMODZIELNE ZAPYTANIE:"""
         
-        res = self.groq.chat.completions.create(
+        res = llm_client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="qwen/qwen3.6-27b",
+            model=model_name,
             temperature=0
         )
         return res.choices[0].message.content
 
-    def ask(self, question, chat_history=None):
-        # przepisywanie zapytania jeśli jest historia --> szukanie w Qdrancie za pomocą "mądrzejszego" pytania
-        search_query = self.rewrite_query(question, chat_history) if chat_history else question
+    def ask(self, question, chat_history=None, custom_api_key=None, provider=None):
+
+        # Pobranie odpowiedniego klienta LLM (własny klucz lub domyślny Groq)
+        llm_client, model_name = self._get_llm_client(custom_api_key, provider)
+
+        # przepisywanie zapytania z użyciem dobranego LLM, jeśli jest historia --> szukanie w Qdrancie za pomocą "mądrzejszego" pytania
+        search_query = self.rewrite_query(question, chat_history, llm_client, model_name) if chat_history else question
 
         # pobieranie kontekstu na podstawie "mądrzejszego" zapytania jeśli jest historia
         context, sources = self.get_context(search_query) ## pobieranie kontekstu i listy źródeł
@@ -194,10 +214,10 @@ class LaborLawRAG:
         ## na końcu dodanie bieżącego pytania użytkownika
         messages.append({"role": "user", "content": question})
         
-        ## wysłanie całej listy do Groq
-        chat = self.groq.chat.completions.create(
+        ## wysłanie całej listy do wywołanego dobranego klienta LLM (domyślnie Groq)
+        chat = llm_client.chat.completions.create(
             messages=messages,
-            model="qwen/qwen3.6-27b",
+            model=model_name,
             temperature=0.1 ### aby odpowiedzi były maksymalnie precyzyjne i mało kreatywne
         )
 
