@@ -79,8 +79,22 @@ public class ConsultationService
                 m.Content))
             .ToList();
 
-        // wywołanie mózgu z pełną historią
-        var (answer, sources) = await _legalBrain.AskLegalQuestionAsync(query, historyDto);
+        // Odszyfrowanie klucza użytkownika (jeśli został wcześniej zapisany)
+        string? decryptedApiKey = null;
+        if (!string.IsNullOrEmpty(user.EncryptedLlmKey) && !string.IsNullOrEmpty(user.LlmKeyIv))
+        {
+            try
+            {
+                decryptedApiKey = _encryptionService.Decrypt(user.EncryptedLlmKey, user.LlmKeyIv);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Decryption Warning]: Nie udało się odszyfrować klucza LLM: {ex.Message}");
+            }
+        }
+
+        // wywołanie mózgu z pełną historią oraz odszyfrowanym kluczem
+        var (answer, sources) = await _legalBrain.AskLegalQuestionAsync(query, historyDto, decryptedApiKey, user.LlmProvider);
 
         // 4. Dodanie odpowiedzi (niezależnie czy nowa, czy stara sesja)
         consultation.AddResponse(answer, sources);

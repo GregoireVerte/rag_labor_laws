@@ -13,14 +13,18 @@ public class LegalBrainServiceClient : ILegalBrainService
     }
 
     public async Task<(string Response, IEnumerable<ArticleId> Sources)> AskLegalQuestionAsync(
-    UserQuery query,
-    IEnumerable<ChatMessageDto> history)
+        UserQuery query,
+        IEnumerable<ChatMessageDto> history,
+        string? customApiKey = null,
+        string? provider = null)
     {
-        // 1. Przygotowanie danych do wysłania
+        // 1. Przygotowanie danych do wysłania do Pythona
         var payload = new
         {
             question = query.Text,
-            history = history // EF i HttpClient zajmą się zamianą na JSON // to wysyła do Pythona
+            history = history, // EF i HttpClient zajmą się zamianą na JSON // to wysyła do Pythona
+            custom_api_key = customApiKey,
+            provider = provider
         };
 
         // 2. Wysłanie zapytania do Pythona na Renderze

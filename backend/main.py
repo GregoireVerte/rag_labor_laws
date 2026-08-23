@@ -41,6 +41,8 @@ class Query(BaseModel):
     question: str
     history: list[ChatMessage] = [] ### lista wiadomości przesyłana z C#
     ## session_id: str = None  ## to było pole na ID sesji ## NIEAKTUALNE bo logika i baza przechodzi do C#
+    custom_api_key: str | None = None
+    provider: str | None = None
 
 
 # ENDPOINT z przywracaniem wiadomości dla danego session_id
@@ -243,8 +245,13 @@ async def ask_legal_brain(query: Query):
                 ## paruje: Pytanie użytkownika i odpowiedź asystenta
                 formatted_history.append((query.history[i].content, query.history[i+1].content))
 
-        ### teraz wywołuje RAG z prawdziwą historią i działającym rewrite_query
-        result = rag_engine.ask(query.question, chat_history=formatted_history)
+        ### teraz wywołuje RAG z prawdziwą historią, działającym rewrite_query, kluczem użytkownika i dostawcą
+        result = rag_engine.ask(
+            query.question,
+            chat_history=formatted_history,
+            custom_api_key=query.custom_api_key,
+            provider=query.provider
+        )
         
         return {
             "answer": result["answer"],
