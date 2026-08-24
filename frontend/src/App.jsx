@@ -64,6 +64,13 @@ function App() {
   const [forgotMsg, setForgotMsg] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
 
+  // Stany do obsługi własnego klucza API LLM (BYOK)
+  const [llmApiKey, setLlmApiKey] = useState("");
+  const [llmProvider, setLlmProvider] = useState("openrouter");
+  const [showLlmKey, setShowLlmKey] = useState(false);
+  const [llmKeyUpdateMsg, setLlmKeyUpdateMsg] = useState("");
+  const [llmKeyUpdateLoading, setLlmKeyUpdateLoading] = useState(false);
+
   // Funkcja obsługująca rejestrację nowego konta
   const handleRegister = async (e) => {
     e.preventDefault(); // Zapobiega przeładowaniu strony po wysłaniu formularza
@@ -433,6 +440,8 @@ function App() {
     setShowSettingsModal(false);
     setPasswordUpdateMsg("");
     setEmailUpdateMsg("");
+    setLlmKeyUpdateMsg("");
+    setLlmApiKey("");
     setNewEmail("");
     setNewPassword("");
   };
@@ -517,6 +526,34 @@ function App() {
       setPasswordUpdateMsg(`⚠️ Błąd: ${err.message}`);
     } finally {
       setPasswordUpdateLoading(false);
+    }
+  };
+
+  const handleUpdateLlmKey = async (e) => {
+    e.preventDefault();
+    setLlmKeyUpdateLoading(true);
+    setLlmKeyUpdateMsg("");
+
+    try {
+      await axios.patch(`${API_BASE_URL}/user/llm-key`, {
+        user_id: user.id,
+        apiKey: llmApiKey.trim() || null,
+        provider: llmProvider,
+      });
+
+      if (!llmApiKey.trim()) {
+        setLlmKeyUpdateMsg(
+          "✅ Przywrócono domyślny, darmowy silnik systemowy!",
+        );
+      } else {
+        setLlmKeyUpdateMsg(
+          "✅ Pomyślnie zaszyfrowano i zapisano Twój klucz API!",
+        );
+      }
+    } catch (err) {
+      setLlmKeyUpdateMsg(`⚠️ Błąd: ${err.message}`);
+    } finally {
+      setLlmKeyUpdateLoading(false);
     }
   };
 
@@ -1426,6 +1463,129 @@ function App() {
                   }}
                 >
                   {passwordUpdateMsg}
+                </div>
+              )}
+            </div>
+
+            {/* FORMULARZ PODPIĘCIA WŁASNEGO KLUCZA API LLM */}
+            <div
+              className="llm-key-box"
+              style={{
+                marginTop: "20px",
+                padding: "20px",
+                backgroundColor: "#222",
+                border: "1px solid #333",
+                borderRadius: "8px",
+              }}
+            >
+              <h3 style={{ margin: "0 0 10px 0" }}>
+                🧠 Własny klucz API LLM (BYOK)
+              </h3>
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "#aaa",
+                  marginBottom: "15px",
+                  lineHeight: "1.4",
+                }}
+              >
+                Możesz podpiąć swój własny klucz API (np. z OpenRouter, Google
+                AI Studio lub Groq). Klucz zostanie zaszyfrowany algorytmem{" "}
+                <strong>AES-256-GCM</strong> i będzie widoczny wyłącznie dla
+                Twojego konta. Pozostaw pole puste i kliknij Zapisz, aby wrócić
+                do silnika domyślnego.
+              </p>
+              <form
+                onSubmit={handleUpdateLlmKey}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                }}
+              >
+                <div style={{ display: "flex", gap: "10px" }}>
+                  {/* Wybór Dostawcy */}
+                  <select
+                    value={llmProvider}
+                    onChange={(e) => setLlmProvider(e.target.value)}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "4px",
+                      border: "1px solid #444",
+                      backgroundColor: "#333",
+                      color: "#fff",
+                      fontSize: "14px",
+                    }}
+                  >
+                    <option value="openrouter">OpenRouter API</option>
+                    <option value="google">Google AI Studio</option>
+                    <option value="groq">Groq Cloud</option>
+                  </select>
+
+                  {/* Pole tekstowe z kluczem i okiem 👁️ */}
+                  <div style={{ flex: 1, display: "flex", gap: "5px" }}>
+                    <input
+                      type={showLlmKey ? "text" : "password"}
+                      placeholder="Wklej klucz API (sk-or-... / AIzaSy...)"
+                      value={llmApiKey}
+                      onChange={(e) => setLlmApiKey(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: "8px 12px",
+                        borderRadius: "4px",
+                        border: "1px solid #444",
+                        backgroundColor: "#333",
+                        color: "#fff",
+                        fontSize: "14px",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLlmKey(!showLlmKey)}
+                      style={{
+                        padding: "0 10px",
+                        backgroundColor: "#333",
+                        border: "1px solid #444",
+                        color: "#aaa",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        fontSize: "16px",
+                      }}
+                      title={showLlmKey ? "Ukryj klucz" : "Pokaż klucz"}
+                    >
+                      {showLlmKey ? "🙈" : "👁️"}
+                    </button>
+                  </div>
+
+                  {/* Przycisk zapisu */}
+                  <button
+                    type="submit"
+                    disabled={llmKeyUpdateLoading}
+                    style={{
+                      padding: "8px 15px",
+                      backgroundColor: llmKeyUpdateLoading ? "#555" : "#6f42c1",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "4px",
+                      fontWeight: "bold",
+                      cursor: llmKeyUpdateLoading ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {llmKeyUpdateLoading ? "Szyfrowanie..." : "Zapisz klucz"}
+                  </button>
+                </div>
+              </form>
+              {llmKeyUpdateMsg && (
+                <div
+                  style={{
+                    marginTop: "10px",
+                    fontSize: "13px",
+                    color: llmKeyUpdateMsg.includes("⚠️")
+                      ? "#ff6b6b"
+                      : "#4ecd64",
+                  }}
+                >
+                  {llmKeyUpdateMsg}
                 </div>
               )}
             </div>
