@@ -1,6 +1,7 @@
 import os
 import time
 import random
+import re
 from dotenv import load_dotenv
 from groq import Groq
 from openai import OpenAI
@@ -38,6 +39,13 @@ class LaborLawRAG:
 
         ## Domyślny fallback systemowy (Groq)
         return self.groq, "qwen/qwen3.6-27b"
+
+    def _clean_think_tags(self, text: str) -> str:
+        if not text:
+            return ""
+        ## Wyczyszczenie <think>...</think> lub nieobsłużonego <think> do końca tekstu (wraz ze znakami nowej linii)
+        cleaned_text = re.sub(r'<think>(?:.*?</think>|.*)', '', text, flags=re.DOTALL)
+        return cleaned_text.strip()
 
     def get_context(self, query, limit=50):
         dense_vec = None
@@ -171,7 +179,8 @@ class LaborLawRAG:
             model=model_name,
             temperature=0
         )
-        return res.choices[0].message.content
+        raw_content = res.choices[0].message.content
+        return self._clean_think_tags(raw_content)
 
     def ask(self, question, chat_history=None, custom_api_key=None, provider=None):
 
@@ -218,11 +227,15 @@ class LaborLawRAG:
         chat = llm_client.chat.completions.create(
             messages=messages,
             model=model_name,
-            temperature=0.1 ### aby odpowiedzi były maksymalnie precyzyjne i mało kreatywne
+            temperature=0.1, ### aby odpowiedzi były maksymalnie precyzyjne i mało kreatywne
+            max_tokens=2048 ## <-- Zapewnia odpowiedni bufor na pełną odpowiedź
         )
 
+        raw_content = chat.choices[0].message.content
+        clean_answer = self._clean_think_tags(raw_content)
+
         return {
-            "answer": chat.choices[0].message.content,
+            "answer": clean_answer,
             "sources": sources
         }
     
