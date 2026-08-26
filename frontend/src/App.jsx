@@ -70,6 +70,7 @@ function App() {
   const [showLlmKey, setShowLlmKey] = useState(false);
   const [llmKeyUpdateMsg, setLlmKeyUpdateMsg] = useState("");
   const [llmKeyUpdateLoading, setLlmKeyUpdateLoading] = useState(false);
+  const [hasCustomKey, setHasCustomKey] = useState(false);
 
   // Funkcja obsługująca rejestrację nowego konta
   const handleRegister = async (e) => {
@@ -193,7 +194,9 @@ function App() {
     try {
       const { data, error } = await supabase
         .from("Users")
-        .select("DailyQueryCount, MaxDailyLimit, TelegramChatId")
+        .select(
+          "DailyQueryCount, MaxDailyLimit, TelegramChatId, LlmProvider, EncryptedLlmKey",
+        )
         .eq("Id", user.id)
         .single();
 
@@ -205,6 +208,12 @@ function App() {
 
         // Jeśli TelegramChatId nie jest nullem ani pusty -> ustawia na true
         setIsTelegramLinked(!!data.TelegramChatId);
+
+        // Synchronizacja stanu klucza i dostawcy z bazą Supabase
+        setHasCustomKey(!!data.EncryptedLlmKey);
+        if (data.LlmProvider) {
+          setLlmProvider(data.LlmProvider);
+        }
 
         // Jeśli licznik dobił do limitu natychmiast blokuje interfejs
         if (data.DailyQueryCount >= data.MaxDailyLimit) {
@@ -550,6 +559,9 @@ function App() {
           "✅ Pomyślnie zaszyfrowano i zapisano Twój klucz API!",
         );
       }
+
+      setLlmApiKey(""); // Czyszczenie pola po zapisie
+      fetchUserLimits(); // <-- ODBUDOWANIE STATUSU Z BAZY
     } catch (err) {
       setLlmKeyUpdateMsg(`⚠️ Błąd: ${err.message}`);
     } finally {
@@ -1481,6 +1493,39 @@ function App() {
               <h3 style={{ margin: "0 0 10px 0" }}>
                 🧠 Własny klucz API LLM (BYOK)
               </h3>
+              {/* WSKAŹNIK STATUSU KLUCZA */}
+              <div
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "6px",
+                  marginBottom: "15px",
+                  fontSize: "13px",
+                  fontWeight: "bold",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: hasCustomKey ? "#1e3a29" : "#2b2b2b",
+                  border: hasCustomKey ? "1px solid #2e6b3e" : "1px solid #444",
+                  color: hasCustomKey ? "#4ecd64" : "#aaa",
+                }}
+              >
+                {hasCustomKey ? (
+                  <>
+                    <span>🟢</span> Aktywny własny klucz API (Dostawca:{" "}
+                    <strong
+                      style={{ color: "#fff", textTransform: "uppercase" }}
+                    >
+                      {llmProvider}
+                    </strong>
+                    )
+                  </>
+                ) : (
+                  <>
+                    <span>⚪</span> Używasz domyślnego, darmowego silnika
+                    systemowego (Groq)
+                  </>
+                )}
+              </div>
               <p
                 style={{
                   fontSize: "12px",
