@@ -29,11 +29,11 @@ class LaborLawRAG:
         if custom_api_key and custom_api_key.strip():
             prov = (provider or "openrouter").lower()
             if prov == "openrouter":
-                ### OpenRouter używa standardu OpenAI
-                return OpenAI(base_url="https://openrouter.ai/api/v1", api_key=custom_api_key.strip()), "qwen/qwen-2.5-72b-instruct"
+                ### OpenRouter (z darmowym ruterem modeli (:free)) - używa standardu OpenAI
+                return OpenAI(base_url="https://openrouter.ai/api/v1", api_key=custom_api_key.strip()), "openrouter/free"
             elif prov == "google":
-                ### Google AI Studio jest w standardzie OpenAI
-                return OpenAI(base_url="https://generativelanguage.googleapis.com/v1beta/openai/", api_key=custom_api_key.strip()), "gemini-2.5-flash"
+                ### Stabilny i darmowy Gemini 2.0 Flash z Google AI Studio - jest w standardzie OpenAI
+                return OpenAI(base_url="https://generativelanguage.googleapis.com/v1beta/openai/", api_key=custom_api_key.strip()), "gemini-2.0-flash"
             elif prov == "groq":
                 return Groq(api_key=custom_api_key.strip()), "qwen/qwen3.6-27b"
 
@@ -228,7 +228,7 @@ class LaborLawRAG:
             messages=messages,
             model=model_name,
             temperature=0.1, ### aby odpowiedzi były maksymalnie precyzyjne i mało kreatywne
-            max_tokens=2048 ## <-- Zapewnia odpowiedni bufor na pełną odpowiedź
+            max_tokens=1024 ## <-- Zapewnia odpowiedni bufor na pełną odpowiedź (bezpieczny chroniący przed błędem 413 / TPM Limit na Groq)
         )
 
         raw_content = chat.choices[0].message.content
