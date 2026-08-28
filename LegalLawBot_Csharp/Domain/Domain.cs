@@ -232,6 +232,10 @@ namespace LegalLawBot_Csharp.Domain
         // Metoda biznesowa: Zwiększa licznik lub rzuca błąd, jeśli przekroczono max. limit
         public void IncrementQueryCount()
         {
+            // Jeśli użytkownik ma wpięty swój zaszyfrowany klucz (BYOK) ignoruje dzienny limit darmowy
+            if (!string.IsNullOrEmpty(EncryptedLlmKey))
+                return;
+
             if (DailyQueryCount >= MaxDailyLimit)
                 throw new InvalidOperationException("Osiągnięto dzienny limit zapytań AI. Wymagane przejście na plan Premium.");
 

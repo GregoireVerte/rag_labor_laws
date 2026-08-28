@@ -210,13 +210,14 @@ function App() {
         setIsTelegramLinked(!!data.TelegramChatId);
 
         // Synchronizacja stanu klucza i dostawcy z bazą Supabase
-        setHasCustomKey(!!data.EncryptedLlmKey);
+        const customKeyActive = !!data.EncryptedLlmKey;
+        setHasCustomKey(customKeyActive);
         if (data.LlmProvider) {
           setLlmProvider(data.LlmProvider);
         }
 
-        // Jeśli licznik dobił do limitu natychmiast blokuje interfejs
-        if (data.DailyQueryCount >= data.MaxDailyLimit) {
+        // Blokuj pole wpisywania TYLKO wtedy, gdy użytkownik NIE MA własnego klucza I dobił do limitu
+        if (!customKeyActive && data.DailyQueryCount >= data.MaxDailyLimit) {
           setIsLimitReached(true);
         } else {
           setIsLimitReached(false);
@@ -878,10 +879,14 @@ function App() {
               <span
                 style={{
                   fontWeight: "bold",
-                  color: isLimitReached ? "#ff4d4d" : "#0088ff",
+                  color: hasCustomKey
+                    ? "#4ecd64"
+                    : isLimitReached
+                      ? "#ff4d4d"
+                      : "#0088ff",
                 }}
               >
-                {queryCount} / {maxLimit}
+                {hasCustomKey ? "∞ (BYOK)" : `${queryCount} / ${maxLimit}`}
               </span>
             </div>
           )}

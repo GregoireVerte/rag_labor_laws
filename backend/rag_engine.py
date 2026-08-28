@@ -32,8 +32,8 @@ class LaborLawRAG:
                 ### OpenRouter (z darmowym ruterem modeli (:free)) - używa standardu OpenAI
                 return OpenAI(base_url="https://openrouter.ai/api/v1", api_key=custom_api_key.strip()), "openrouter/free"
             elif prov == "google":
-                ### Stabilny i darmowy Gemini 2.0 Flash z Google AI Studio - jest w standardzie OpenAI
-                return OpenAI(base_url="https://generativelanguage.googleapis.com/v1beta/openai/", api_key=custom_api_key.strip()), "gemini-2.0-flash"
+                ### Zamiast numerów używa oficjalnego aliasu dla darmowego Tieru z Google AI Studio - jest w standardzie OpenAI
+                return OpenAI(base_url="https://generativelanguage.googleapis.com/v1beta/openai/", api_key=custom_api_key.strip()), "gemini-flash-latest"
             elif prov == "groq":
                 return Groq(api_key=custom_api_key.strip()), "qwen/qwen3.6-27b"
 
